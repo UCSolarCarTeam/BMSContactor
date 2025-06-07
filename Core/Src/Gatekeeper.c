@@ -175,10 +175,10 @@ void Gatekeeper(CAN_Message *message)
 			}
 
 			// we need to first tell the Precharge_Sense_ON pin to close
-//			HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_SET); **************************************************************************************************************************************************************UNCOMMENT
+			HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_SET);
 
 			// to safely close the switch, we would need to first close the precharger to voltage spike.
-//			PrechargerState = changeSwitch(&precharger, precharger.Switch_State, CLOSED, precharger.Delay); **************************************************************************************************************************************************************UNCOMMENT
+			PrechargerState = changeSwitch(&precharger, precharger.Switch_State, CLOSED, precharger.Delay);
 			// this will return if it's closed or not
 
 			if (PrechargerState){	// precharger is closed
@@ -186,6 +186,8 @@ void Gatekeeper(CAN_Message *message)
 				/*  we first take the ADC value from the pin that reads the PRCH_CURRENT_ADC										*/
 				/*  from that we need to convert this ADC count into voltage then divide it by (2*Rf) to get the current!			*/
 				/*  get the current: 																								*/
+
+				/* BEGINNING OF COMMENTED OUT PORTION OF PRECHARGE CODE 1
 				int64_t avg_initial_current_1 = removeNoise();
 				HAL_Delay(TICKS_BETWEEN_SAMPLING_POINTS); // the clock frequency is 80 MHz. So it waits 'TIME_BETWEEN_SAMPLING_POINTS' number of ticks or milliseconds
 
@@ -203,8 +205,12 @@ void Gatekeeper(CAN_Message *message)
 				// ok so we got the inital values yay
 				// now we gotta wait a sec
 //				HAL_Delay(8000*1000); // the clock frequency is 80 MHz. So it does 1 tick every 0.000125 milliseconds. So 8000 ticks is 1 milliseconds. We want to wait 1 seconds so we do (8000 * 1000) to get 1 second (1000 milliseconds = 1 second)
-				HAL_Delay(100); // the clock frequency is 80 MHz. So it does 1 tick every 0.000125 milliseconds. So 8000 ticks is 1 milliseconds. We want to wait 1 seconds so we do (8000 * 1000) to get 1 second (1000 milliseconds = 1 second)
+				END OF COMMENTED OUT PORTION OF PRECHARGE CODE 1*/
+				HAL_Delay(1000); // wait 1 second to be safe it's precharged
+				// the clock frequency is 80 MHz. So it does 1 tick every 0.000125 milliseconds. So 8000 ticks is 1 milliseconds. We want to wait 1 seconds so we do (8000 * 1000) to get 1 second (1000 milliseconds = 1 second)
 
+
+				/* BEGINNING OF COMMENTED OUT PORTION OF PRECHARGE CODE 2
 				int64_t avg_latest_current_1 = removeNoise();
 
 				HAL_Delay(TICKS_BETWEEN_SAMPLING_POINTS); // the clock frequency is 80 MHz. So it waits 100 ticks
@@ -218,10 +224,11 @@ void Gatekeeper(CAN_Message *message)
 				if ((latest_deriv) <= precharger.derivative_threshold){ // if we pass the threshold value
 					// now we gotta check if we pass the threshold for the value (is it close to 0?)
 					if ((avg_latest_current_2 <= precharger.threshold)){
+				END OF COMMENTED OUT PORTION OF PRECHARGE CODE 2*/
 						// yay, it's precharged, let's try closing the contactor:
 						ContactorClosedState = changeSwitch(&contactor, contactor.Switch_State, CLOSED, contactor.Delay);
-					}
-				}
+//					}
+//				}
 
 				PrechargerState = changeSwitch(&precharger, precharger.Switch_State, OPEN, precharger.Delay); // open the precharger no matter what
 			}
