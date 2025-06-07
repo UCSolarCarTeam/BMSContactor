@@ -203,7 +203,7 @@ void Gatekeeper(CAN_Message *message)
 				// ok so we got the inital values yay
 				// now we gotta wait a sec
 //				HAL_Delay(8000*1000); // the clock frequency is 80 MHz. So it does 1 tick every 0.000125 milliseconds. So 8000 ticks is 1 milliseconds. We want to wait 1 seconds so we do (8000 * 1000) to get 1 second (1000 milliseconds = 1 second)
-				HAL_Delay(1000); // the clock frequency is 80 MHz. So it does 1 tick every 0.000125 milliseconds. So 8000 ticks is 1 milliseconds. We want to wait 1 seconds so we do (8000 * 1000) to get 1 second (1000 milliseconds = 1 second)
+				HAL_Delay(100); // the clock frequency is 80 MHz. So it does 1 tick every 0.000125 milliseconds. So 8000 ticks is 1 milliseconds. We want to wait 1 seconds so we do (8000 * 1000) to get 1 second (1000 milliseconds = 1 second)
 
 				int64_t avg_latest_current_1 = removeNoise();
 
@@ -217,7 +217,7 @@ void Gatekeeper(CAN_Message *message)
 				// check if the derivative of the latest - the initial is above a certain threshold value
 				if ((latest_deriv) <= precharger.derivative_threshold){ // if we pass the threshold value
 					// now we gotta check if we pass the threshold for the value (is it close to 0?)
-					if ((avg_latest_current <= precharger.threshold)){
+					if ((avg_latest_current_2 <= precharger.threshold)){
 						// yay, it's precharged, let's try closing the contactor:
 						ContactorClosedState = changeSwitch(&contactor, contactor.Switch_State, CLOSED, contactor.Delay);
 					}
