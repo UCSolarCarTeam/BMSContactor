@@ -15,6 +15,6 @@ Overview: the Master BMS sends the wanted states for all the contactors. The con
 
 This function will delegate what to do to get the wanted state. To open/close contactors, the changeSwitch function will do that. It will also check if that state is actually acheived.
 
-Lastly, the gatekeeper function will send a CAN message of the status of the state. (If a BPS Error [the contactor needs to open but it doesn't] is noticed, the changeSwitch functin will send that)
+A BPS Error [the contactor needs to open but it doesn't] is noticed, we plan to add a way that calls the interrupt right away.
 
-There is also an interrupt that will send a message every 100 milliseconds. The heartbeat will be sent using this interrupt every 1 second and the general status will be sent every 100 milliseconds.
+The interrupt is incharge of sending message. The interrupt is called every 100 milliseconds. The heartbeat will be sent using this interrupt every 1 second and the general status will be sent every 100 milliseconds.
