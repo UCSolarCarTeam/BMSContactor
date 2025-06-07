@@ -1,6 +1,6 @@
 # BMSContactor
 
-## Set Up
+## 🪛 Set Up
 
 Before flashing each contactor, line 44 in ContactorsIOCFile/Core/Src/main.c needs to be changed to the corresponding contactor. The options are:
 
@@ -9,7 +9,7 @@ Before flashing each contactor, line 44 in ContactorsIOCFile/Core/Src/main.c nee
 - ARRAY
 - LV
 - CHARGE
-## Logic
+## 🧠 Logic
 
 Overview: the Master BMS sends the wanted states for all the contactors. The contactor will see if it's in the wanted state. If it's not, it will call the Gatekeeper function.
 
