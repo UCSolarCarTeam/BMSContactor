@@ -1,3 +1,3 @@
 ../Core/Src/Gatekeeper.c:38:10:func	16	static
 ../Core/Src/Gatekeeper.c:43:9:removeNoise	152	static
-../Core/Src/Gatekeeper.c:110:6:Gatekeeper	160	static
+../Core/Src/Gatekeeper.c:110:6:Gatekeeper	120	static
