@@ -58,6 +58,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define ARRAY_CURRENT_ADC_Pin GPIO_PIN_0
+#define ARRAY_CURRENT_ADC_GPIO_Port GPIOA
 #define Contactor_Aux_Input_Pin GPIO_PIN_1
 #define Contactor_Aux_Input_GPIO_Port GPIOA
 #define PRECHARGE_ON_Output_Pin GPIO_PIN_4
@@ -68,6 +70,8 @@ void Error_Handler(void);
 #define DIAG_N_Input_GPIO_Port GPIOA
 #define PRECHARGE_Sense_On_Output_Pin GPIO_PIN_7
 #define PRECHARGE_Sense_On_Output_GPIO_Port GPIOA
+#define PRECHARGE_CURRENT_ADC_Pin GPIO_PIN_0
+#define PRECHARGE_CURRENT_ADC_GPIO_Port GPIOB
 #define CAN1_Mode_Pin GPIO_PIN_8
 #define CAN1_Mode_GPIO_Port GPIOA
 
