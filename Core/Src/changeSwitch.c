@@ -16,7 +16,6 @@
 
 extern volatile SwitchInfo_t precharger;
 extern volatile SwitchInfo_t contactor;
-extern uint16_t rawValues[2];
 extern uint8_t TxData[8]; // for sending CAN messages
 
 /*
@@ -60,18 +59,6 @@ bool changeSwitch(SwitchInfo_t* switch_to_change, SwitchState current_state, Swi
 				case true: // Contactor, and we want to open. try inf times, check if gpio input us open
 					SwitchState switch_status = setSwitch(switch_to_change, OPEN); // try to open the switch
 					while(switch_status != OPEN){ // while the switch is not open, keep trying to open it
-
-						// SEND BPS_ERROR MESSAGE IF NOT OPEN
-
-						uint32_t state_byte_closed = makingCANMessage();	// making the message we are going to send
-
-						TxData[0] = (state_byte_closed >> 24) & 0xFF;		// the payload we're sending
-						TxData[1] = (state_byte_closed >> 16) & 0xFF;
-						TxData[2] = (state_byte_closed >> 8) & 0xFF;
-						TxData[3] = state_byte_closed & 0xFF;
-
-						SendingCANMessage(contactor.extendedID, TxData, 4); 						// send the message
-
 						switch_status = setSwitch(switch_to_change, OPEN); // try to open the switch
 
 //						HAL_Delay(delayTime); // wait for a bit before checking if we achieved our goal

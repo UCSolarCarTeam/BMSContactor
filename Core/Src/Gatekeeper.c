@@ -145,17 +145,6 @@ void Gatekeeper(CAN_Message *message)
 			// Convert state to uint8_t for CAN message
 //			state_byte |= (ContactorOpenState ? 1 : 0);// If true, state_byte = 1; if false, state_byte = 0
 
-			// now we gotta convert them to bytes
-			uint32_t state_byte = makingCANMessage();
-
-			// the payload we're sending
-			TxData[0] = (state_byte >> 24) & 0xFF;
-			TxData[1] = (state_byte >> 16) & 0xFF;
-			TxData[2] = (state_byte >> 8) & 0xFF;
-			TxData[3] = state_byte & 0xFF;
-			// send the message
-			 SendingCANMessage(contactor.extendedID, TxData, 4);
-
 			// end case
 			break;
 
@@ -167,15 +156,6 @@ void Gatekeeper(CAN_Message *message)
 			if (contactor.WhichContactor == (SwitchState)COMMON) {	// the common doesn't have precharging so we're bypassing it
 
 						ContactorClosedState = changeSwitch(&contactor, contactor.Switch_State, CLOSED, contactor.Delay);
-						uint32_t state_byte_closed = makingCANMessage();
-
-						 // the payload we're sending
-						TxData[0] = (state_byte_closed >> 24) & 0xFF;
-						TxData[1] = (state_byte_closed >> 16) & 0xFF;
-						TxData[2] = (state_byte_closed >> 8) & 0xFF;
-						TxData[3] = state_byte_closed & 0xFF;
-						// send the message
-						SendingCANMessage(contactor.extendedID, TxData, 4);
 						break; // break out of this state
 				}
 
@@ -190,15 +170,6 @@ void Gatekeeper(CAN_Message *message)
 
 			if (checkCommonStatus != CLOSED){
 				contactor.switchError = true;
-				uint32_t state_byte_closed = makingCANMessage();
-
-				 // the payload we're sending
-				TxData[0] = (state_byte_closed >> 24) & 0xFF;
-				TxData[1] = (state_byte_closed >> 16) & 0xFF;
-				TxData[2] = (state_byte_closed >> 8) & 0xFF;
-				TxData[3] = state_byte_closed & 0xFF;
-				// send the message
-				SendingCANMessage(contactor.extendedID, TxData, 4);
 				break; // break out of this state
 
 			}
@@ -244,9 +215,9 @@ void Gatekeeper(CAN_Message *message)
 				latest_deriv = (func(avg_latest_current_2) - func(avg_latest_current_1))/h;
 
 				// check if the derivative of the latest - the initial is above a certain threshold value
-				if ((latest_deriv - initial_deriv) <= precharger.derivative_threshold){ // if we pass the threshold value
+				if ((latest_deriv) <= precharger.derivative_threshold){ // if we pass the threshold value
 					// now we gotta check if we pass the threshold for the value (is it close to 0?)
-					if ((avg_latest_current_2 - avg_initial_current_1 <= precharger.threshold)){
+					if ((avg_latest_current <= precharger.threshold)){
 						// yay, it's precharged, let's try closing the contactor:
 						ContactorClosedState = changeSwitch(&contactor, contactor.Switch_State, CLOSED, contactor.Delay);
 					}
@@ -270,18 +241,6 @@ void Gatekeeper(CAN_Message *message)
 			// precharger broken but contactor closed: 001 101
 			// precharger closed but contactor not: 100 001
 			// precharger and contactor didn't close: 100 100
-
-			// making the message we are going to send
-			// Convert state to uint8_t for CAN message
-			uint32_t state_byte_closed = makingCANMessage();
-
-			 // the payload we're sending
-			TxData[0] = (state_byte_closed >> 24) & 0xFF;
-			TxData[1] = (state_byte_closed >> 16) & 0xFF;
-			TxData[2] = (state_byte_closed >> 8) & 0xFF;
-			TxData[3] = state_byte_closed & 0xFF;
-			// send the message
-			SendingCANMessage(contactor.extendedID, TxData, 4);
 
 			// end case
 			break;

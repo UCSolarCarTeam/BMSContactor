@@ -89,13 +89,13 @@ uint8_t heartData[8];
 uint16_t heartbeat;
 
 // initializing buffer for DMA
-uint16_t rawValues[2];
+uint16_t rawValues[2] = {0};
 uint32_t heartbeat_extendedIDE = 0x200 + CONTACTOR_TYPE;
 
 SwitchInfo_t contactor =
 	{
-		.GPIO_Port = Contactor_ON_Output_Pin,
-		.GPIO_Pin = Contactor_ON_Output_GPIO_Port,
+		.GPIO_Port = Contactor_ON_Output_GPIO_Port,
+		.GPIO_Pin = Contactor_ON_Output_Pin,
 		.GPIO_Port_Sense = Contactor_Aux_Input_GPIO_Port,
 		.GPIO_Pin_Sense = Contactor_Aux_Input_Pin,
 		.GPIO_State = GPIO_PIN_RESET, // All pins except the common should start off as open. Reset = 0
@@ -140,22 +140,25 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   // Callback: timer has reset
   if (htim->Instance == TIM16)
   {
+    static uint16_t heartbeatCounter = 0;
 	  // how do we get resistance to convert voltage to current? V = IR
 	  //LED Pin = turn on if contactor closed vice versa
 
 	  // this is sent every 10 milliseconds
-	  // add heartbeat!
-	  	heartbeat++;
-	  	if (heartbeat >= 65535){ // 2^16, changed it from 65536 to 65535
-	  		heartbeat = 0;
-	  	}
-
-	  	// Store the 16-bit heartbeat into two bytes
-	  	heartData[0] = (heartbeat >> 8) & 0xFF;  // High byte (bits 8-15)
-	  	heartData[1] = heartbeat & 0xFF;         // Low byte (bits 0-7)
-
-	  	// send heartbeat
-	  	SendingCANMessage(heartbeat_extendedIDE, heartData, 2);
+	  // add heartbeat
+    if(heartbeatCounter == 10)
+    {
+      heartbeatCounter = 0;
+      heartbeat++;
+      
+      // Store the 16-bit heartbeat into two bytes
+      heartData[0] = heartbeat & 0xFF;         // Low byte (bits 0-7)
+      heartData[1] = (heartbeat >> 8) & 0xFF;  // High byte (bits 8-15)
+      
+      // send heartbeat
+      SendingCANMessage(heartbeat_extendedIDE, heartData, 2);
+    }
+    heartbeatCounter++;
 
 		// implement timer interrurpt (enable timer on ioc with new timer)
 		// if no message is sent after 65 milliseconds (limit timer 16 can track), it will send a CAN message
@@ -163,10 +166,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		// we want to send the current state of the contactor and precharger
 		state_status = makingCANMessage();
 		// the payload we're sending
-		TxData[0] = (state_status >> 24) & 0xFF;
-		TxData[1] = (state_status >> 16) & 0xFF;
-		TxData[2] = (state_status >> 8) & 0xFF;
-		TxData[3] = state_status & 0xFF;
+		TxData[0] = state_status & 0xFF;
+		TxData[1] = (state_status >> 8) & 0xFF;
+		TxData[2] = (state_status >> 16) & 0xFF;
+		TxData[3] = (state_status >> 24) & 0xFF;
 
 		// send the message
 		SendingCANMessage(contactor.extendedID, TxData, 4);
@@ -263,23 +266,13 @@ int main(void)
     /* USER CODE BEGIN 3 */
 		// WHEN YOU'RE INTIALIZING CHECK THE STATE!!!!!!!!!
 		checkState();
-		//	if (messageFlag == 1){
-				received_message.id = rx_header.IDE == CAN_ID_STD ? rx_header.StdId : rx_header.ExtId;
-				received_message.dlc = rx_header.DLC;
-				received_message.is_extended = (rx_header.IDE == CAN_ID_EXT);
-				received_message.is_rtr = (rx_header.RTR == CAN_RTR_REMOTE);
-		//		memcpy(
-				received_message.data[0] = 0b00000000;
-				received_message.data[1] = 0b00000000;
-				received_message.data[2] = 0b00000000;
-				received_message.data[3] = 0b00000000;
-
+			if (messageFlag == 1){
 				HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
 				Gatekeeper(&received_message);
 				messageFlag = 0;
-		//	} else{
-		//			HAL_UART_Transmit(&huart2, msg2, strlen(msg2), HAL_MAX_DELAY);
-		//		}
+			} else{
+					HAL_UART_Transmit(&huart2, msg2, strlen(msg2), HAL_MAX_DELAY);
+			}
   }
   /* USER CODE END 3 */
 }
@@ -471,7 +464,7 @@ static void MX_TIM16_Init(void)
   htim16.Instance = TIM16;
   htim16.Init.Prescaler = 39999;
   htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim16.Init.Period = 19;
+  htim16.Init.Period = 199;
   htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim16.Init.RepetitionCounter = 0;
   htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -480,7 +473,7 @@ static void MX_TIM16_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM16_Init 2 */
-
+  HAL_TIM_Base_Start_IT(&htim16);
   /* USER CODE END TIM16_Init 2 */
 
 }

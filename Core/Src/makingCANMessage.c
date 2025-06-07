@@ -63,8 +63,6 @@ uint32_t makingCANMessage()
 	state_status = (state_status & 0xFFFFFFDF) | ((contactorError & 0x1) << 5); 			// Bit 5: If the contactor failed to get to the wanted state or not
 
 	// adding math to convert line current before sending it out onto the CAN Line
-	// need to offset the ADC since to account for negative values (-2 to 2), it was made into 0-4. So now we gotta convert back to -2 to 2. So we minus 2
-	rawValues[1] = rawValues[1] - 2;
 	// now we have to times it by the amps to ADC voltage ratio
 	rawValues[1] = rawValues[1] * contactor.lineCurrentAmpsPerADCVoltage;
 
