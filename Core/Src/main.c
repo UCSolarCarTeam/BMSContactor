@@ -99,7 +99,7 @@ SwitchInfo_t contactor =
 //		.Delay = 8000*250, // NEEDS A DELAY OF ABOUT A 1/4 OF A SECOND
 		.Delay = 250, // NEEDS A DELAY OF ABOUT A 1/4 OF A SECOND
 		.WhichContactor = COMMON, // we need to define this separately on each board!!!!!!!!! **
-		.extendedID = 0x700 + COMMON, // sets our extendedID to 0x700 + the number corresponding to each contactor (i.e motor will be 0x700 + 1 = 0x701) **
+		.extendedID = 0x200 + COMMON, // sets our extendedID to 0x200 + the number corresponding to each contactor (i.e motor will be 0x200 + 1 = 0x201) **
 //		.resistance = 6.6, // WILL CHANGE BASED ON CONACTOR **
 		.isContactor = 1,
 		.lineCurrentAmpsPerADCVoltage = 50  // WILL CHANGE BASED ON CONACTOR ** can be 100!!! or 30!!!
