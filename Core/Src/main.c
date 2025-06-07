@@ -126,6 +126,48 @@ void checkState(){
 
 }
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  // Callback: timer has reset
+  if (htim->Instance == TIM16)
+  {
+	  // how do we get resistance to convert voltage to current? V = IR
+	  //LED Pin = turn on if contactor closed vice versa
+
+	  // this is sent every 10 milliseconds
+	  // add heartbeat!
+	  	heartbeat++;
+	  	if (heartbeat >= 65535){ // 2^16, changed it from 65536 to 65535
+	  		heartbeat = 0;
+	  	}
+
+	  	// Store the 16-bit heartbeat into two bytes
+	  	heartData[0] = (heartbeat >> 8) & 0xFF;  // High byte (bits 8-15)
+	  	heartData[1] = heartbeat & 0xFF;         // Low byte (bits 0-7)
+
+	  	// send heartbeat
+	  	SendingCANMessage(heartData, 2);
+
+		// implement timer interrurpt (enable timer on ioc with new timer)
+		// if no message is sent after 65 milliseconds (limit timer 16 can track), it will send a CAN message
+		// send a CAN message!
+		// we want to send the current state of the contactor and precharger
+		state_status = makingCANMessage();
+		// the payload we're sending
+		TxData[0] = (state_status >> 24) & 0xFF;
+		TxData[1] = (state_status >> 16) & 0xFF;
+		TxData[2] = (state_status >> 8) & 0xFF;
+		TxData[3] = state_status & 0xFF;
+
+		// send the message
+		SendingCANMessage(TxData, 4);
+  }
+  if (htim->Instance == TIM1) {
+    HAL_IncTick();
+  }
+
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -209,7 +251,7 @@ int main(void)
 				received_message.is_extended = (rx_header.IDE == CAN_ID_EXT);
 				received_message.is_rtr = (rx_header.RTR == CAN_RTR_REMOTE);
 		//		memcpy(
-				received_message.data[0] = 0b00000001;
+				received_message.data[0] = 0b00000000;
 				received_message.data[1] = 0b00000000;
 				received_message.data[2] = 0b00000000;
 				received_message.data[3] = 0b00000000;
