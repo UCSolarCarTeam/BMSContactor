@@ -2,7 +2,7 @@
 
 ## Set Up
 
-Before flashing each contactor, line 48 in ContactorsIOCFile/Core/Src/Gatekeeper.c needs to be changed to the corresponding contactor. The options are:
+Before flashing each contactor, line 44 in ContactorsIOCFile/Core/Src/main.c needs to be changed to the corresponding contactor. The options are:
 
 - COMMON
 - MOTOR
