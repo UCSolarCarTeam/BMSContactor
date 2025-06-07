@@ -154,7 +154,7 @@ void Gatekeeper(CAN_Message *message)
 			TxData[2] = (state_byte >> 8) & 0xFF;
 			TxData[3] = state_byte & 0xFF;
 			// send the message
-			 SendingCANMessage(TxData, 4);
+			 SendingCANMessage(contactor.extendedID, TxData, 4);
 
 			// end case
 			break;
@@ -175,7 +175,7 @@ void Gatekeeper(CAN_Message *message)
 						TxData[2] = (state_byte_closed >> 8) & 0xFF;
 						TxData[3] = state_byte_closed & 0xFF;
 						// send the message
-						SendingCANMessage(TxData, 4);
+						SendingCANMessage(contactor.extendedID, TxData, 4);
 						break; // break out of this state
 				}
 
@@ -198,7 +198,7 @@ void Gatekeeper(CAN_Message *message)
 				TxData[2] = (state_byte_closed >> 8) & 0xFF;
 				TxData[3] = state_byte_closed & 0xFF;
 				// send the message
-				SendingCANMessage(TxData, 4);
+				SendingCANMessage(contactor.extendedID, TxData, 4);
 				break; // break out of this state
 
 			}
@@ -281,7 +281,7 @@ void Gatekeeper(CAN_Message *message)
 			TxData[2] = (state_byte_closed >> 8) & 0xFF;
 			TxData[3] = state_byte_closed & 0xFF;
 			// send the message
-			SendingCANMessage(TxData, 4);
+			SendingCANMessage(contactor.extendedID, TxData, 4);
 
 			// end case
 			break;

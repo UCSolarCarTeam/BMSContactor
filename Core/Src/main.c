@@ -41,7 +41,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define CONTACTOR_TYPE COMMON
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -85,6 +85,7 @@ uint16_t heartbeat;
 
 // initializing buffer for DMA
 uint16_t rawValues[2];
+uint32_t heartbeat_extendedIDE = 0x200 + CONTACTOR_TYPE;
 
 SwitchInfo_t contactor =
 	{
@@ -98,8 +99,8 @@ SwitchInfo_t contactor =
 		.BPSError = false,
 //		.Delay = 8000*250, // NEEDS A DELAY OF ABOUT A 1/4 OF A SECOND
 		.Delay = 250, // NEEDS A DELAY OF ABOUT A 1/4 OF A SECOND
-		.WhichContactor = COMMON, // we need to define this separately on each board!!!!!!!!! **
-		.extendedID = 0x200 + COMMON, // sets our extendedID to 0x200 + the number corresponding to each contactor (i.e motor will be 0x200 + 1 = 0x201) **
+		.WhichContactor = CONTACTOR_TYPE, // we need to define this separately on each board!!!!!!!!! **
+		.extendedID = 0x210 + CONTACTOR_TYPE, // sets our extendedID to 0x200 + the number corresponding to each contactor (i.e motor will be 0x200 + 1 = 0x201) **
 //		.resistance = 6.6, // WILL CHANGE BASED ON CONACTOR **
 		.isContactor = 1,
 		.lineCurrentAmpsPerADCVoltage = 50  // WILL CHANGE BASED ON CONACTOR ** can be 100!!! or 30!!!
@@ -149,7 +150,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	  	heartData[1] = heartbeat & 0xFF;         // Low byte (bits 0-7)
 
 	  	// send heartbeat
-	  	SendingCANMessage(heartData, 2);
+	  	SendingCANMessage(heartbeat_extendedIDE, heartData, 2);
 
 		// implement timer interrurpt (enable timer on ioc with new timer)
 		// if no message is sent after 65 milliseconds (limit timer 16 can track), it will send a CAN message
@@ -163,7 +164,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		TxData[3] = state_status & 0xFF;
 
 		// send the message
-		SendingCANMessage(TxData, 4);
+		SendingCANMessage(contactor.extendedID, TxData, 4);
   }
   if (htim->Instance == TIM1) {
     HAL_IncTick();

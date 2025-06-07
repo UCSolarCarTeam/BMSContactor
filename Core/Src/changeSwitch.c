@@ -70,7 +70,7 @@ bool changeSwitch(SwitchInfo_t* switch_to_change, SwitchState current_state, Swi
 						TxData[2] = (state_byte_closed >> 8) & 0xFF;
 						TxData[3] = state_byte_closed & 0xFF;
 
-						SendingCANMessage(TxData, 4); 						// send the message
+						SendingCANMessage(contactor.extendedID, TxData, 4); 						// send the message
 
 						switch_status = setSwitch(switch_to_change, OPEN); // try to open the switch
 
