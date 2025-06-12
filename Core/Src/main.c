@@ -279,7 +279,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 		// WHEN YOU'RE INTIALIZING CHECK THE STATE!!!!!!!!!
 	checkState();
-	HAL_GPIO_WritePin(precharger.GPIO_Port, precharger.GPIO_Pin, GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(precharger.GPIO_Port, precharger.GPIO_Pin, GPIO_PIN_SET);
 
 	if (messageFlag == 1){
 //		HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
