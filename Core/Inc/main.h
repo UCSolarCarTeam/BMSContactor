@@ -60,8 +60,8 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define ARRAY_CURRENT_ADC_Pin GPIO_PIN_0
 #define ARRAY_CURRENT_ADC_GPIO_Port GPIOA
-#define Contactor_aux_Pin GPIO_PIN_1
-#define Contactor_aux_GPIO_Port GPIOA
+#define Contactor_Aux_Input_Pin GPIO_PIN_1
+#define Contactor_Aux_Input_GPIO_Port GPIOA
 #define PRECHARGE_ON_Output_Pin GPIO_PIN_4
 #define PRECHARGE_ON_Output_GPIO_Port GPIOA
 #define Contactor_ON_Output_Pin GPIO_PIN_5

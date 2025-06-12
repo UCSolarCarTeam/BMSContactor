@@ -41,7 +41,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define CONTACTOR_TYPE COMMON
+#define CONTACTOR_TYPE COMMON   // WILL CHANGE BASED ON CONACTOR **
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -51,7 +51,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
-DMA_HandleTypeDef hdma_adc1;
 
 CAN_HandleTypeDef hcan1;
 
@@ -65,11 +64,10 @@ UART_HandleTypeDef huart2;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_DMA_Init(void);
 static void MX_CAN1_Init(void);
-static void MX_USART2_UART_Init(void);
 static void MX_TIM16_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -96,8 +94,8 @@ SwitchInfo_t contactor =
 	{
 		.GPIO_Port = Contactor_ON_Output_GPIO_Port,
 		.GPIO_Pin = Contactor_ON_Output_Pin,
-		.GPIO_Port_Sense = Contactor_aux_GPIO_Port,
-		.GPIO_Pin_Sense = Contactor_aux_Pin,
+		.GPIO_Port_Sense = Contactor_Aux_Input_GPIO_Port,
+		.GPIO_Pin_Sense = Contactor_Aux_Input_Pin,
 		.GPIO_State = GPIO_PIN_RESET, // All pins except the common should start off as open. Reset = 0
 		.Switch_State = OPEN, // All pins except the common should start off as open.
 	    .switchError = false,
@@ -110,24 +108,39 @@ SwitchInfo_t contactor =
 		.isContactor = 1,
 		.lineCurrentAmpsPerADCVoltage = 50  // WILL CHANGE BASED ON CONACTOR ** can be 100!!! or 30!!!
 	};
-SwitchInfo_t precharger;
 
+SwitchInfo_t precharger =
+{
+			.GPIO_Port = PRECHARGE_ON_Output_GPIO_Port,
+			.GPIO_Pin = PRECHARGE_ON_Output_Pin,
+			.GPIO_Port_Sense = PRECHARGE_Sense_On_Output_GPIO_Port,
+			.GPIO_Pin_Sense = PRECHARGE_Sense_On_Output_Pin,
+			.Switch_State = OPEN, // All pins except the common should start off as open.
+			.switchError = false,
+	//		.Delay = 3000, // DOESN'T NEED A DELAY
+			.resistance = 0.005, // WILL CHANGE BASED ON CONACTOR ** IT COULD 0.3!!!
+			.threshold = 1, // WILL CHANGE BASED ON CONACTOR **
+			.isContactor = 0,
+			.derivative_threshold = 1 // WILL CHANGE BASED ON CONACTOR **
+};
 
 void checkState(){
 	// check our contactor
-	contactor.Switch_State = HAL_GPIO_ReadPin(contactor.GPIO_Port_Sense, contactor.GPIO_Pin_Sense);
-	if (contactor.Switch_State == CLOSED){
+	GPIO_PinState contactor_aux_pinstate= HAL_GPIO_ReadPin(contactor.GPIO_Port_Sense, contactor.GPIO_Pin_Sense);
+	if (contactor_aux_pinstate == GPIO_PIN_SET){
+		contactor.Switch_State = CLOSED;
 		contactor.GPIO_State = GPIO_PIN_SET; // set the pin
-	}else{
+	} else {
+		contactor.Switch_State = OPEN;
 		contactor.GPIO_State = GPIO_PIN_RESET; // ensure it's reset
 	}
 	// if we're not common, check the same thing for our contactor
 	if (contactor.WhichContactor != COMMON){
-		precharger.Switch_State = HAL_GPIO_ReadPin(precharger.GPIO_Port_Sense, precharger.GPIO_Pin_Sense);
+		precharger.Switch_State = HAL_GPIO_ReadPin(DIAG_N_Input_GPIO_Port, DIAG_N_Input_Pin);
 
 		if (precharger.Switch_State == CLOSED){
 			precharger.GPIO_State = GPIO_PIN_SET; // set the pin
-		}else{
+		} else {
 			precharger.GPIO_State = GPIO_PIN_RESET; // ensure it's reset
 		}
 	}
@@ -143,7 +156,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     static uint16_t heartbeatCounter = 0;
 	  // how do we get resistance to convert voltage to current? V = IR
 	  //LED Pin = turn on if contactor closed vice versa
-
+    	checkState();
 	  // this is sent every 10 milliseconds
 	  // add heartbeat
     if(heartbeatCounter == 10)
@@ -199,23 +212,23 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  if(contactor.WhichContactor != COMMON){
-	SwitchInfo_t precharger =
-		{
-			.GPIO_Port = PRECHARGE_ON_Output_GPIO_Port,
-			.GPIO_Pin = PRECHARGE_ON_Output_Pin,
-			.GPIO_Port_Sense = PRECHARGE_CURRENT_ADC_GPIO_Port,
-			.GPIO_Pin_Sense = PRECHARGE_CURRENT_ADC_Pin,
-			.Switch_State = OPEN, // All pins except the common should start off as open.
-			.switchError = false,
-	//		.Delay = 3000, // DOESN'T NEED A DELAY
-			.resistance = 0.005, // WILL CHANGE BASED ON CONACTOR ** IT COULD 0.3!!!
-			.threshold = 1, // WILL CHANGE BASED ON CONACTOR **
-			.isContactor = 0,
-			.derivative_threshold = 1 // WILL CHANGE BASED ON CONACTOR **
-		};
-  }
-  checkState();
+//  if(contactor.WhichContactor != COMMON){
+//	SwitchInfo_t precharger =
+//		{
+//			.GPIO_Port = PRECHARGE_ON_Output_GPIO_Port,
+//			.GPIO_Pin = PRECHARGE_ON_Output_Pin,
+//			.GPIO_Port_Sense = PRECHARGE_CURRENT_ADC_GPIO_Port,
+//			.GPIO_Pin_Sense = PRECHARGE_CURRENT_ADC_Pin,
+//			.Switch_State = OPEN, // All pins except the common should start off as open.
+//			.switchError = false,
+//	//		.Delay = 3000, // DOESN'T NEED A DELAY
+//			.resistance = 0.005, // WILL CHANGE BASED ON CONACTOR ** IT COULD 0.3!!!
+//			.threshold = 1, // WILL CHANGE BASED ON CONACTOR **
+//			.isContactor = 0,
+//			.derivative_threshold = 1 // WILL CHANGE BASED ON CONACTOR **
+//		};
+//  }
+//  checkState();
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -227,12 +240,13 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
   MX_CAN1_Init();
-  MX_USART2_UART_Init();
   MX_TIM16_Init();
   MX_ADC1_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+    checkState();
+
   HAL_CAN_Start(&hcan1);
 
   //start the timer
@@ -264,14 +278,18 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 		// WHEN YOU'RE INTIALIZING CHECK THE STATE!!!!!!!!!
-		checkState();
-			if (messageFlag == 1){
-				HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
-				Gatekeeper(&received_message);
-				messageFlag = 0;
-			} else{
-					HAL_UART_Transmit(&huart2, msg2, strlen(msg2), HAL_MAX_DELAY);
-			}
+	checkState();
+	HAL_GPIO_WritePin(precharger.GPIO_Port, precharger.GPIO_Pin, GPIO_PIN_SET);
+
+	if (messageFlag == 1){
+//		HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
+		Gatekeeper(&received_message);
+		messageFlag = 0;
+	}
+//	else {
+//		HAL_UART_Transmit(&huart2, msg2, strlen(msg2), HAL_MAX_DELAY);
+//	}
+
   }
   /* USER CODE END 3 */
 }
@@ -352,13 +370,13 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   hadc1.Init.LowPowerAutoWait = DISABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.NbrOfConversion = 2;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.DMAContinuousRequests = ENABLE;
-  hadc1.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   hadc1.Init.OversamplingMode = DISABLE;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
@@ -380,7 +398,6 @@ static void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_15;
   sConfig.Rank = ADC_REGULAR_RANK_2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -463,7 +480,7 @@ static void MX_TIM16_Init(void)
   htim16.Instance = TIM16;
   htim16.Init.Prescaler = 39999;
   htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim16.Init.Period = 199;
+  htim16.Init.Period = 19;
   htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim16.Init.RepetitionCounter = 0;
   htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -513,22 +530,6 @@ static void MX_USART2_UART_Init(void)
 }
 
 /**
-  * Enable DMA controller clock
-  */
-static void MX_DMA_Init(void)
-{
-
-  /* DMA controller clock enable */
-  __HAL_RCC_DMA1_CLK_ENABLE();
-
-  /* DMA interrupt init */
-  /* DMA1_Channel1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-
-}
-
-/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -550,11 +551,11 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(CAN1_Mode_GPIO_Port, CAN1_Mode_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : Contactor_aux_Pin DIAG_N_Input_Pin */
-  GPIO_InitStruct.Pin = Contactor_aux_Pin|DIAG_N_Input_Pin;
+  /*Configure GPIO pin : Contactor_Aux_Input_Pin */
+  GPIO_InitStruct.Pin = Contactor_Aux_Input_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(Contactor_Aux_Input_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PRECHARGE_ON_Output_Pin Contactor_ON_Output_Pin PRECHARGE_Sense_On_Output_Pin CAN1_Mode_Pin */
   GPIO_InitStruct.Pin = PRECHARGE_ON_Output_Pin|Contactor_ON_Output_Pin|PRECHARGE_Sense_On_Output_Pin|CAN1_Mode_Pin;
@@ -562,6 +563,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : DIAG_N_Input_Pin */
+  GPIO_InitStruct.Pin = DIAG_N_Input_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(DIAG_N_Input_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB5 PB6 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
     HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_SET);
@@ -588,6 +601,8 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		} // else, we received rubbish data, ignore it
 	}
 }
+
+//void HAL
 /* USER CODE END 4 */
 
 /**

@@ -157,7 +157,7 @@ void Gatekeeper(CAN_Message *message)
 
 						ContactorClosedState = changeSwitch(&contactor, contactor.Switch_State, CLOSED, contactor.Delay);
 						break; // break out of this state
-				}
+			}
 
 			// NOT COMMON:
 

@@ -52,8 +52,8 @@ typedef enum
 typedef enum
 {
 	COMMON = 0,
-	MOTOR1,
-	MOTOR2,
+	MOTOR,
+//	MOTOR2,
 	ARRAY,
 	LV,
     CHARGE
