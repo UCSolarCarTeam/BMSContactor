@@ -173,19 +173,21 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
     heartbeatCounter++;
 
-		// implement timer interrurpt (enable timer on ioc with new timer)
-		// if no message is sent after 65 milliseconds (limit timer 16 can track), it will send a CAN message
-		// send a CAN message!
-		// we want to send the current state of the contactor and precharger
-		state_status = makingCANMessage();
-		// the payload we're sending
-		TxData[0] = state_status & 0xFF;
-		TxData[1] = (state_status >> 8) & 0xFF;
-		TxData[2] = (state_status >> 16) & 0xFF;
-		TxData[3] = (state_status >> 24) & 0xFF;
+	// implement timer interrurpt (enable timer on ioc with new timer)
+	// if no message is sent after 65 milliseconds (limit timer 16 can track), it will send a CAN message
+	// send a CAN message!
+	// we want to send the current state of the contactor and precharger
+	state_status = makingCANMessage();
+	// the payload we're sending
+	TxData[0] = state_status & 0xFF;
+	TxData[1] = (state_status >> 8) & 0xFF;
+	TxData[2] = (state_status >> 16) & 0xFF;
+	TxData[3] = (state_status >> 24) & 0xFF;
 
-		// send the message
-		SendingCANMessage(contactor.extendedID, TxData, 4);
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t *) rawValues, 2);
+
+	// send the message
+	SendingCANMessage(contactor.extendedID, TxData, 4);
   }
   if (htim->Instance == TIM1) {
     HAL_IncTick();
@@ -489,7 +491,7 @@ static void MX_TIM16_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM16_Init 2 */
-  HAL_TIM_Base_Start_IT(&htim16);
+
   /* USER CODE END TIM16_Init 2 */
 
 }
@@ -577,7 +579,8 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
-    HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_SET);
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
