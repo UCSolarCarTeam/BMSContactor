@@ -42,6 +42,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define CONTACTOR_TYPE COMMON   // WILL CHANGE BASED ON CONACTOR **
+#define MAX_ADC_SAMPLES 1000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -87,6 +88,14 @@ uint32_t state_status;
 uint8_t TxData[8];
 uint8_t heartData[8];
 uint16_t heartbeat;
+
+
+//ADC values
+uint32_t adc_array_precharge[MAX_ADC_SAMPLES];
+uint32_t adc_array_current[MAX_ADC_SAMPLES];
+uint32_t adc_index = 0;
+uint32_t array_index = 0;
+uint32_t diag_array_values[MAX_ADC_SAMPLES];
 
 // initializing buffer for DMA
 uint16_t rawValues[2] = {0};
@@ -250,7 +259,7 @@ int main(void)
   MX_TIM16_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-    checkState();
+   checkState();
 
   HAL_CAN_Start(&hcan1);
 
@@ -259,10 +268,12 @@ int main(void)
   //
   //  // start ADC+DMA
   HAL_ADC_Start_DMA(&hadc1, (uint32_t *) rawValues, 2);
-  uint8_t msg[] = "Received\r\n";
-  uint8_t msg2[] = "Message Not Received\r\n";
+//  uint8_t msg[] = "Received\r\n";
+//  uint8_t msg2[] = "Message Not Received\r\n";
 
   uint32_t testID = 0x101;
+//  	HAL_GPIO_WritePin(precharger.GPIO_Port, precharger.GPIO_Pin, GPIO_PIN_RESET);
+//  	HAL_GPIO_WritePin(contactor.GPIO_Port, contactor.GPIO_Pin, GPIO_PIN_RESET);
 
 
   CAN_TxHeaderTypeDef canTxHeader;
@@ -284,7 +295,22 @@ int main(void)
     /* USER CODE BEGIN 3 */
 		// WHEN YOU'RE INTIALIZING CHECK THE STATE!!!!!!!!!
 	checkState();
-//	HAL_GPIO_WritePin(precharger.GPIO_Port, precharger.GPIO_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_RESET);
+	GPIO_PinState diag_reading = HAL_GPIO_ReadPin(DIAG_N_Input_GPIO_Port, DIAG_N_Input_Pin);
+    if (array_index < MAX_ADC_SAMPLES)  // prevent overflow
+    {
+        adc_array_current[array_index]   = rawValues[0];
+        adc_array_precharge[array_index] = rawValues[1];
+    	diag_array_values[array_index] = diag_reading;
+    	array_index++;
+//        if (adc_index >= 40){
+//        	adc_index = 0;
+//        }
+    }
+    HAL_Delay(250);
+	HAL_GPIO_WritePin(precharger.GPIO_Port, precharger.GPIO_Pin, GPIO_PIN_SET);
+
+
 
 	if (messageFlag == 1){
 //		HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
@@ -544,6 +570,11 @@ static void MX_DMA_Init(void)
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
 
+  /* DMA interrupt init */
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+
 }
 
 /**
@@ -619,6 +650,22 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		} // else, we received rubbish data, ignore it
 	}
 }
+
+//void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+//{
+////    if (hadc->Instance == ADC1)
+////    {
+//        if (adc_index < MAX_ADC_SAMPLES)  // prevent overflow
+//        {
+//            adc_array_current[adc_index]   = rawValues[0];
+//            adc_array_precharge[adc_index] = rawValues[1];
+//            adc_index++;
+////            if (adc_index >= 40){
+////            	adc_index = 0;
+////            }
+//        }
+////    }
+//}
 
 //void HAL
 /* USER CODE END 4 */

@@ -44,7 +44,8 @@ int64_t removeNoise()
 {
 	int64_t initial_adcCount_y1 = rawValues[0];
 
-	// our ADC reads the analog value and converts it into a number by multiplying it by 4096 (number of total number values). Now, we want to get the actual current so we divide by 4095 (the total number of combinations (since we start at 0)) and then we multiply by 3.3V since we are measuring 3.3. ADC resolution.
+	// our ADC reads the analog value and converts it into a number by multiplying it by 4096 (number of total number values).??? I had this written but i think it's wrong
+	//Now, we want to get the actual current so we divide by 4095 (the total number of combinations (since we start at 0)) and then we multiply by 3.3V since we are measuring 3.3. ADC resolution.
 	int64_t voltage_1  = ((initial_adcCount_y1 * 3.3) / 4095);
 
 	// minus the 2 offset
