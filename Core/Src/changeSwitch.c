@@ -17,6 +17,7 @@
 extern volatile SwitchInfo_t precharger;
 extern volatile SwitchInfo_t contactor;
 extern uint8_t TxData[8]; // for sending CAN messages
+extern uint16_t rawValues[2];
 
 /*
  * This function is called from the Gatekeeper
@@ -122,8 +123,10 @@ SwitchState setSwitch(SwitchInfo_t* switch_to_change, SwitchState wanted_state)
 					}
 
 				} else { // CLOSE-ing Precharger, check if ADC is > 0 (current flowing through)
-					if(HAL_GPIO_ReadPin(DIAG_N_Input_GPIO_Port, DIAG_N_Input_Pin) != 0){ // we can read current now
-						switch_to_change->Switch_State = CLOSED; // set the switch state to OPEN
+//					if(HAL_GPIO_ReadPin(DIAG_N_Input_GPIO_Port, DIAG_N_Input_Pin) != 0){ // we can read current now
+				if(rawValues[1] >= PRECHARGE_COMPLETE_THRESHOLD_ADC_COUNT){ // we can read current now
+
+					switch_to_change->Switch_State = CLOSED; // set the switch state to OPEN
 						return CLOSED; // if the switch is closed, return closed
 					} else {
 						switch_to_change->Switch_State = CLOSING; // set the switch state to OPEN

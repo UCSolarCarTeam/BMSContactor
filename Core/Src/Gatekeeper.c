@@ -42,7 +42,7 @@ uint64_t func(float x)
 
 int64_t removeNoise()
 {
-	int64_t initial_adcCount_y1 = rawValues[0];
+	int64_t initial_adcCount_y1 = rawValues[1];
 
 	// our ADC reads the analog value and converts it into a number by multiplying it by 4096 (number of total number values).??? I had this written but i think it's wrong
 	//Now, we want to get the actual current so we divide by 4095 (the total number of combinations (since we start at 0)) and then we multiply by 3.3V since we are measuring 3.3. ADC resolution.
@@ -62,7 +62,7 @@ int64_t removeNoise()
 
 	// we're going to sample 2 points very close to each other to bypass noise and make it nominal
 
-	int64_t initial_adcCount_y2 = rawValues[0];
+	int64_t initial_adcCount_y2 = rawValues[1];
 
 
 
@@ -231,8 +231,10 @@ void Gatekeeper(CAN_Message *message)
 //					}
 //				}
 
-				PrechargerState = changeSwitch(&precharger, precharger.Switch_State, OPEN, precharger.Delay); // open the precharger no matter what
+//				PrechargerState = changeSwitch(&precharger, precharger.Switch_State, OPEN, precharger.Delay); // open the precharger no matter what
 			}
+//			PrechargerState = changeSwitch(&precharger, precharger.Switch_State, OPEN, precharger.Delay); // open the precharger no matter what
+
 
 			// open the Precharge Sense On pin
 			HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_RESET);

@@ -39,7 +39,7 @@ uint32_t makingCANMessage()
 	bpsError = contactor.BPSError; // if the bool is set to 1, there was a BPS error, SERIOUS
 
 	// now we gotta convert them to bytes
-	uint32_t state_status = 0;
+	uint32_t state_status = 0x000000;
 	if (prechargerState == 0 || prechargerState == 1)
 	{
 		state_status = (state_status & 0xFFFFFFFE) | ((prechargerState & 0x1) << 0);  	  	// Bit 0: PrechargerState is open or closed

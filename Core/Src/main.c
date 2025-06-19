@@ -41,7 +41,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define CONTACTOR_TYPE COMMON   // WILL CHANGE BASED ON CONACTOR **
+#define CONTACTOR_TYPE MOTOR   // WILL CHANGE BASED ON CONACTOR **
 #define MAX_ADC_SAMPLES 1000
 /* USER CODE END PD */
 
@@ -88,7 +88,7 @@ uint32_t state_status;
 uint8_t TxData[8];
 uint8_t heartData[8];
 uint16_t heartbeat;
-
+GPIO_PinState contactor_aux_pinstate;
 
 //ADC values
 uint32_t adc_array_precharge[MAX_ADC_SAMPLES];
@@ -137,7 +137,7 @@ SwitchInfo_t precharger =
 
 void checkState(){
 	// check our contactor
-	GPIO_PinState contactor_aux_pinstate= HAL_GPIO_ReadPin(contactor.GPIO_Port_Sense, contactor.GPIO_Pin_Sense);
+	contactor_aux_pinstate= HAL_GPIO_ReadPin(contactor.GPIO_Port_Sense, contactor.GPIO_Pin_Sense);
 	if (contactor_aux_pinstate == GPIO_PIN_SET){
 		contactor.Switch_State = CLOSED;
 		contactor.GPIO_State = GPIO_PIN_SET; // set the pin
@@ -295,28 +295,38 @@ int main(void)
     /* USER CODE BEGIN 3 */
 		// WHEN YOU'RE INTIALIZING CHECK THE STATE!!!!!!!!!
 	checkState();
-	HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_RESET);
-	GPIO_PinState diag_reading = HAL_GPIO_ReadPin(DIAG_N_Input_GPIO_Port, DIAG_N_Input_Pin);
-    if (array_index < MAX_ADC_SAMPLES)  // prevent overflow
-    {
-        adc_array_current[array_index]   = rawValues[0];
-        adc_array_precharge[array_index] = rawValues[1];
-    	diag_array_values[array_index] = diag_reading;
-    	array_index++;
-//        if (adc_index >= 40){
-//        	adc_index = 0;
-//        }
-    }
-    HAL_Delay(250);
-	HAL_GPIO_WritePin(precharger.GPIO_Port, precharger.GPIO_Pin, GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_RESET);
+//	GPIO_PinState diag_reading = HAL_GPIO_ReadPin(DIAG_N_Input_GPIO_Port, DIAG_N_Input_Pin);
+//    if (array_index < MAX_ADC_SAMPLES)  // prevent overflow
+//    {
+//        adc_array_current[array_index]   = rawValues[0];
+//        adc_array_precharge[array_index] = rawValues[1];
+//    	diag_array_values[array_index] = diag_reading;
+//    	array_index++;
+////        if (adc_index >= 40){
+////        	adc_index = 0;
+////        }
+//    }
+//    HAL_Delay(250);
+//	HAL_GPIO_WritePin(precharger.GPIO_Port, precharger.GPIO_Pin, GPIO_PIN_SET);
 
 
 
-	if (messageFlag == 1){
+//	if (messageFlag == 1){
+		received_message.id = rx_header.IDE == CAN_ID_STD ? rx_header.StdId : rx_header.ExtId;
+		received_message.dlc = rx_header.DLC;
+		received_message.is_extended = (rx_header.IDE == CAN_ID_EXT);
+		received_message.is_rtr = (rx_header.RTR == CAN_RTR_REMOTE);
+//		memcpy(
+		received_message.data[0] = 0b00000011;
+		received_message.data[1] = 0b00000000;
+		received_message.data[2] = 0b00000000;
+		received_message.data[3] = 0b00000000;
 //		HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
+
 		Gatekeeper(&received_message);
 		messageFlag = 0;
-	}
+//	}
 //	else {
 //		HAL_UART_Transmit(&huart2, msg2, strlen(msg2), HAL_MAX_DELAY);
 //	}
