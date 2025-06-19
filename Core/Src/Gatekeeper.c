@@ -230,8 +230,8 @@ void Gatekeeper(CAN_Message *message)
 //					}
 //				}
 
-				PrechargerState = changeSwitch(&precharger, precharger.Switch_State, OPEN, precharger.Delay); // open the precharger no matter what
 			}
+			PrechargerState = changeSwitch(&precharger, precharger.Switch_State, OPEN, precharger.Delay); // open the precharger no matter what
 
 			// open the Precharge Sense On pin
 			HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_RESET);

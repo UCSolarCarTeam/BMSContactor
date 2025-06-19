@@ -11,7 +11,7 @@
 #include <stdbool.h>
 
 #define PRECHARGER_ADC_CHANNEL 0 // change this if I guessed wrong lol. You guessed right
-
+#define PRECHARGE_COMPLETE_THRESHOLD_ADC_COUNT 100
 bool changeSwitch(SwitchInfo_t* switch_to_change, SwitchState current_state, SwitchState wanted_state, uint32_t delayTime);
 SwitchState setSwitch(SwitchInfo_t* switch_to_change, SwitchState wanted_state);
 void setDebugLED(SwitchInfo_t* switch_to_change);

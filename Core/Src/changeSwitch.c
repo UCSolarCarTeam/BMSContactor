@@ -122,7 +122,10 @@ SwitchState setSwitch(SwitchInfo_t* switch_to_change, SwitchState wanted_state)
 					}
 
 				} else { // CLOSE-ing Precharger, check if ADC is > 0 (current flowing through)
-					if(HAL_GPIO_ReadPin(DIAG_N_Input_GPIO_Port, DIAG_N_Input_Pin) != 0){ // we can read current now
+//					if(HAL_GPIO_ReadPin(DIAG_N_Input_GPIO_Port, DIAG_N_Input_Pin) != 0){ // we can read current now
+				if(rawValues[1] >= PRECHARGE_COMPLETE_THRESHOLD_ADC_COUNT)
+				{ // we can read current now
+
 						switch_to_change->Switch_State = CLOSED; // set the switch state to OPEN
 						return CLOSED; // if the switch is closed, return closed
 					} else {
