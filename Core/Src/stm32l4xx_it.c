@@ -55,7 +55,6 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern CAN_HandleTypeDef hcan1;
 extern TIM_HandleTypeDef htim16;
 /* USER CODE BEGIN EV */
 
@@ -85,7 +84,7 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
-
+#if 0
 	  uint32_t cfsr = SCB->CFSR;
 	  uint32_t mmar = SCB->MMFAR;
 
@@ -108,6 +107,7 @@ void HardFault_Handler(void)
 	  } else {
 	    printf("HardFault occurred. Not a MemManage fault.\n");
 	  }
+  #endif
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
@@ -122,6 +122,7 @@ void HardFault_Handler(void)
 void MemManage_Handler(void)
 {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
+#if 0
     uint32_t cfsr = SCB->CFSR;        // Read fault status
     uint32_t faultAddr = SCB->MMFAR;  // Address that caused the fault
 
@@ -138,6 +139,7 @@ void MemManage_Handler(void)
     if (cfsr & (1 << 4)) printf("Stacking error\n");
 
     while (1); // Halt or reset
+  #endif
   /* USER CODE END MemoryManagement_IRQn 0 */
   while (1)
   {
@@ -235,20 +237,6 @@ void SysTick_Handler(void)
 /* For the available peripheral interrupt handler names,                      */
 /* please refer to the startup file (startup_stm32l4xx.s).                    */
 /******************************************************************************/
-
-/**
-  * @brief This function handles CAN1 RX0 interrupt.
-  */
-void CAN1_RX0_IRQHandler(void)
-{
-  /* USER CODE BEGIN CAN1_RX0_IRQn 0 */
-
-  /* USER CODE END CAN1_RX0_IRQn 0 */
-  HAL_CAN_IRQHandler(&hcan1);
-  /* USER CODE BEGIN CAN1_RX0_IRQn 1 */
-
-  /* USER CODE END CAN1_RX0_IRQn 1 */
-}
 
 /**
   * @brief This function handles TIM1 update interrupt and TIM16 global interrupt.

@@ -21,16 +21,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdbool.h>
-#include <stdint.h>
-#include "stm32l4xx_hal.h"
-#include <MessageReader.h>
-#include <Gatekeeper.h>
-#include <switchEnums.h>
-#include <changeSwitch.h>
-#include <makingCANMessage.h>
-#include <SendingCANMessage.h>
-#include <string.h>  // Include this header for memcpy
+#include "boardDefines.h"
+#include "CAN.h"
+#include "CONTACTOR.h"
+#include "TIMER.h"
+#include "ADC.h"
 
 /* USER CODE END Includes */
 
@@ -41,7 +36,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define CONTACTOR_TYPE LV   // WILL CHANGE BASED ON CONACTOR **
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -55,6 +50,7 @@ DMA_HandleTypeDef hdma_adc1;
 
 CAN_HandleTypeDef hcan1;
 
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim16;
 
 UART_HandleTypeDef huart2;
@@ -70,140 +66,48 @@ static void MX_CAN1_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM16_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
-
+static void initBoardIds(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-// initializing variables for receiving data
-CAN_RxHeaderTypeDef rx_header;
-uint8_t rx_data[8]; // CAN data max size is 8 bytes
-volatile uint8_t messageFlag = 0; // flag for if the CAN message is meant for the MBMS
-CAN_Message received_message;
 
-// initializing variables for sending data
-uint32_t state_status;
-uint8_t TxData[8];
-uint8_t heartData[8];
-uint16_t heartbeat;
+/* CAN Rx variables */
+BoardIds boardIds = {.type = NONE, .canIdOffset = 0xFF, .extendedId = true};
 
-// initializing buffer for DMA
-uint32_t volatile rawValues[2] = {0};
-uint32_t heartbeat_extendedIDE = 0x200 + CONTACTOR_TYPE;
-
-SwitchInfo_t volatile contactor =
-	{
-		.GPIO_Port = Contactor_ON_Output_GPIO_Port,
-		.GPIO_Pin = Contactor_ON_Output_Pin,
-		.GPIO_Port_Sense = Contactor_Aux_Input_GPIO_Port,
-		.GPIO_Pin_Sense = Contactor_Aux_Input_Pin,
-		.GPIO_State = GPIO_PIN_RESET, // All pins except the common should start off as open. Reset = 0
-		.Switch_State = OPEN, // All pins except the common should start off as open.
-	    .switchError = false,
-		.BPSError = false,
-//		.Delay = 8000*250, // NEEDS A DELAY OF ABOUT A 1/4 OF A SECOND
-		.Delay = 250, // NEEDS A DELAY OF ABOUT A 1/4 OF A SECOND
-		.WhichContactor = CONTACTOR_TYPE, // we need to define this separately on each board!!!!!!!!! **
-		.extendedID = 0x210 + CONTACTOR_TYPE, // sets our extendedID to 0x200 + the number corresponding to each contactor (i.e motor will be 0x200 + 1 = 0x201) **
-//		.resistance = 6.6, // WILL CHANGE BASED ON CONACTOR **
-		.isContactor = 1,
-		.lineCurrentAmpsPerADCVoltage = 50  // WILL CHANGE BASED ON CONACTOR ** can be 100!!! or 30!!!
-	};
+volatile SwitchInfo_t contactor =
+{
+  .GPIO_Port = Contactor_ON_Output_GPIO_Port,
+  .GPIO_Pin = Contactor_ON_Output_Pin,
+  .GPIO_Port_Sense = Contactor_Aux_Input_GPIO_Port,
+  .GPIO_Pin_Sense = Contactor_Aux_Input_Pin,
+  .GPIO_State = GPIO_PIN_RESET, // All pins except the common should start off as open. Reset = 0
+  .Switch_State = OPEN, // All pins except the common should start off as open.
+  .switchError = false,
+  .BPSError = false,
+  //.Delay = 8000*250, // NEEDS A DELAY OF ABOUT A 1/4 OF A SECOND
+  .Delay = 250, // NEEDS A DELAY OF ABOUT A 1/4 OF A SECOND
+  //resistance = 6.6, // WILL CHANGE BASED ON CONACTOR **
+  .isContactor = 1,
+  .lineCurrentAmpsPerADCVoltage = 50  // WILL CHANGE BASED ON CONACTOR ** can be 100!!! or 30!!!
+};
 
 SwitchInfo_t volatile precharger =
 {
-			.GPIO_Port = PRECHARGE_ON_Output_GPIO_Port,
-			.GPIO_Pin = PRECHARGE_ON_Output_Pin,
-			.GPIO_Port_Sense = PRECHARGE_Sense_On_Output_GPIO_Port,
-			.GPIO_Pin_Sense = PRECHARGE_Sense_On_Output_Pin,
-			.Switch_State = OPEN, // All pins except the common should start off as open.
-			.switchError = false,
-	//		.Delay = 3000, // DOESN'T NEED A DELAY
-			.resistance = 0.005, // CAN'T BE ZEROOOOO!!!!!(0.005 -> 5) WILL CHANGE BASED ON CONACTOR ** IT COULD 0.3!!!
-			.threshold = 1, // WILL CHANGE BASED ON CONACTOR **
-			.isContactor = 0,
-			.derivative_threshold = 1 // WILL CHANGE BASED ON CONACTOR **
+  .GPIO_Port = PRECHARGE_ON_Output_GPIO_Port,
+  .GPIO_Pin = PRECHARGE_ON_Output_Pin,
+  .GPIO_Port_Sense = PRECHARGE_Sense_On_Output_GPIO_Port,
+  .GPIO_Pin_Sense = PRECHARGE_Sense_On_Output_Pin,
+  .Switch_State = OPEN, // All pins except the common should start off as open.
+  .switchError = false,
+  //.Delay = 3000, // DOESN'T NEED A DELAY
+  .resistance = 0.005, // Cannot be 0. WILL CHANGE BASED ON CONACTOR ** IT COULD 0.3!!!
+  .threshold = 1, // WILL CHANGE BASED ON CONACTOR **
+  .isContactor = 0,
+  .derivative_threshold = 1 // WILL CHANGE BASED ON CONACTOR **
 };
-
-void checkState(){
-	// check our contactor
-	GPIO_PinState contactor_aux_pinstate= HAL_GPIO_ReadPin(contactor.GPIO_Port_Sense, contactor.GPIO_Pin_Sense);
-	if (contactor_aux_pinstate == GPIO_PIN_SET){
-		contactor.Switch_State = CLOSED;
-		contactor.GPIO_State = GPIO_PIN_SET; // set the pin
-	} else {
-		contactor.Switch_State = OPEN;
-		contactor.GPIO_State = GPIO_PIN_RESET; // ensure it's reset
-	}
-	// if we're not common, check the same thing for our contactor
-	if (contactor.WhichContactor != COMMON){
-//		precharger.Switch_State = HAL_GPIO_ReadPin(DIAG_N_Input_GPIO_Port, DIAG_N_Input_Pin);
-		if(rawValues[1] >= PRECHARGE_COMPLETE_THRESHOLD_ADC_COUNT){
-			precharger.Switch_State = CLOSED;
-			precharger.GPIO_State = GPIO_PIN_SET;
-		} else {
-			precharger.Switch_State = OPEN;
-			precharger.GPIO_State = GPIO_PIN_RESET; // ensure it's reset
-
-		}
-//
-//		if (precharger.Switch_State == CLOSED){
-//			precharger.GPIO_State = GPIO_PIN_SET; // set the pin
-//		} else {
-//			precharger.GPIO_State = GPIO_PIN_RESET; // ensure it's reset
-//		}
-	}
-
-
-}
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-  // Callback: timer has reset
-  if (htim->Instance == TIM16)
-  {
-    static uint16_t heartbeatCounter = 0;
-	  // how do we get resistance to convert voltage to current? V = IR
-	  //LED Pin = turn on if contactor closed vice versa
-    	checkState();
-	  // this is sent every 10 milliseconds
-	  // add heartbeat
-    if(heartbeatCounter == 10)
-    {
-      heartbeatCounter = 0;
-      heartbeat++;
-      
-      // Store the 16-bit heartbeat into two bytes
-      heartData[0] = heartbeat & 0xFF;         // Low byte (bits 0-7)
-      heartData[1] = (heartbeat >> 8) & 0xFF;  // High byte (bits 8-15)
-      
-      // send heartbeat
-      SendingCANMessage(heartbeat_extendedIDE, heartData, 2);
-    }
-    heartbeatCounter++;
-
-	// implement timer interrurpt (enable timer on ioc with new timer)
-	// if no message is sent after 65 milliseconds (limit timer 16 can track), it will send a CAN message
-	// send a CAN message!
-	// we want to send the current state of the contactor and precharger
-	state_status = makingCANMessage();
-	// the payload we're sending
-	TxData[0] = state_status & 0xFF;
-	TxData[1] = (state_status >> 8) & 0xFF;
-	TxData[2] = (state_status >> 16) & 0xFF;
-	TxData[3] = (state_status >> 24) & 0xFF;
-
-//	HAL_ADC_Start_DMA(&hadc1, (uint32_t *) rawValues, 2);
-
-	// send the message
-	SendingCANMessage(contactor.extendedID, TxData, 4);
-  }
-  if (htim->Instance == TIM1) {
-    HAL_IncTick();
-  }
-
-}
 
 /* USER CODE END 0 */
 
@@ -224,23 +128,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-//  if(contactor.WhichContactor != COMMON){
-//	SwitchInfo_t precharger =
-//		{
-//			.GPIO_Port = PRECHARGE_ON_Output_GPIO_Port,
-//			.GPIO_Pin = PRECHARGE_ON_Output_Pin,
-//			.GPIO_Port_Sense = PRECHARGE_CURRENT_ADC_GPIO_Port,
-//			.GPIO_Pin_Sense = PRECHARGE_CURRENT_ADC_Pin,
-//			.Switch_State = OPEN, // All pins except the common should start off as open.
-//			.switchError = false,
-//	//		.Delay = 3000, // DOESN'T NEED A DELAY
-//			.resistance = 0.005, // WILL CHANGE BASED ON CONACTOR ** IT COULD 0.3!!!
-//			.threshold = 1, // WILL CHANGE BASED ON CONACTOR **
-//			.isContactor = 0,
-//			.derivative_threshold = 1 // WILL CHANGE BASED ON CONACTOR **
-//		};
-//  }
-//  checkState();
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -257,35 +145,17 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM16_Init();
   MX_ADC1_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-//    checkState();
 
-  HAL_CAN_Start(&hcan1);
-
-//  //start the timer
-//  HAL_TIM_Base_Start_IT(&htim16);
-  //
-  //  // start ADC+DMA
-//  HAL_ADC_Start_DMA(&hadc1, (uint32_t *) rawValues, 2);
-
-  //start the timer
-//  HAL_TIM_Base_Start_IT(&htim16);
-
+  initBoardIds();
+ 
   checkState();
 
-//  uint8_t msg[] = "Received\r\n";
-//  uint8_t msg2[] = "Message Not Received\r\n";
-
-//  uint32_t testID = 0x101;
+  //start the timer
+  HAL_TIM_Base_Start_IT(&htim16);
 
 
-//  CAN_TxHeaderTypeDef canTxHeader;
-//	canTxHeader.IDE 	= CAN_ID_EXT;
-//	canTxHeader.RTR 	= CAN_RTR_DATA;
-//	canTxHeader.ExtId  	= testID;
-//	canTxHeader.DLC 	= 8;
-//  uint8_t counter = 0;
-//  uint32_t mailbox;
 
   /* USER CODE END 2 */
 
@@ -296,28 +166,13 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		// WHEN YOU'RE INTIALIZING CHECK THE STATE!!!!!!!!!
-	checkState();
-//	HAL_GPIO_WritePin(precharger.GPIO_Port, precharger.GPIO_Pin, GPIO_PIN_SET);
+    
+    /* ADC task */
+    AdcTask();
 
-//	if (messageFlag == 1){
-	received_message.id = rx_header.IDE == CAN_ID_STD ? rx_header.StdId : rx_header.ExtId;
-	received_message.dlc = rx_header.DLC;
-	received_message.is_extended = (rx_header.IDE == CAN_ID_EXT);
-	received_message.is_rtr = (rx_header.RTR == CAN_RTR_REMOTE);
-//		memcpy(
-	received_message.data[0] = 0b00001001;
-	received_message.data[1] = 0b00000000;
-	received_message.data[2] = 0b00000000;
-	received_message.data[3] = 0b00000000;
-//		HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
-		Gatekeeper(received_message);
-		messageFlag = 0;
-//	}
-//	else {
-//		HAL_UART_Transmit(&huart2, msg2, strlen(msg2), HAL_MAX_DELAY);
-//	}
+    Check_CAN_Messages();
 
+    ContactorTask();
   }
   /* USER CODE END 3 */
 }
@@ -396,7 +251,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   hadc1.Init.LowPowerAutoWait = DISABLE;
   hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.NbrOfConversion = 2;
@@ -447,7 +302,7 @@ static void MX_CAN1_Init(void)
 {
 
   /* USER CODE BEGIN CAN1_Init 0 */
-
+  CAN_FilterTypeDef filterConfig_1;
   /* USER CODE END CAN1_Init 0 */
 
   /* USER CODE BEGIN CAN1_Init 1 */
@@ -470,24 +325,71 @@ static void MX_CAN1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN CAN1_Init 2 */
-  CAN_FilterTypeDef filterConfig_1;
-  filterConfig_1.FilterBank = 0;                         // First filter bank
-  filterConfig_1.FilterMode = CAN_FILTERMODE_IDMASK;     // Mask mode
-  filterConfig_1.FilterScale = CAN_FILTERSCALE_32BIT;    // 32-bit scale
-//  filterConfig_1.FilterIdHigh = 0x0000;				// filter id is the part we want to mask and sets the IDE bit to true so we can accept extended IDs
-  filterConfig_1.FilterIdHigh = (0x101 >> 13) & 0xffff;				// filter id is the part we want to mask and sets the IDE bit to true so we can accept extended IDs
+  
+  filterConfig_1.FilterBank = 0;                          // First filter bank
+  filterConfig_1.FilterMode = CAN_FILTERMODE_IDMASK;      // Mask mode
+  filterConfig_1.FilterScale = CAN_FILTERSCALE_32BIT;     // 32-bit scale
+  //filterConfig_1.FilterIdHigh = 0x0000;				          // filter id is the part we want to mask and sets the IDE bit to true so we can accept extended IDs
+  filterConfig_1.FilterIdHigh = (CONTACTOR_COMMAND_ID >> 13) & 0xffff;		// filter id is the part we want to mask and sets the IDE bit to true so we can accept extended IDs
 
-  filterConfig_1.FilterIdLow = ((0x101 & 0x1fff) << 3) | (1 << 2);
+  filterConfig_1.FilterIdLow = ((CONTACTOR_COMMAND_ID & 0x1fff) << 3) | (1 << 2);
   filterConfig_1.FilterMaskIdHigh = 0;
   filterConfig_1.FilterMaskIdLow = 0;		
   filterConfig_1.FilterFIFOAssignment = CAN_FILTER_FIFO0; // Put accepted msgs in FIFO 0
-  filterConfig_1.FilterActivation = ENABLE;              // Enable the filter
+  filterConfig_1.FilterActivation = ENABLE;               // Enable the filter
   if (HAL_CAN_ConfigFilter(&hcan1, &filterConfig_1) != HAL_OK) {
-	Error_Handler();
+	  Error_Handler();
   }
 
   HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
+
+  HAL_CAN_Start(&hcan1);
   /* USER CODE END CAN1_Init 2 */
+
+}
+
+/**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 79;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 4294967295;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+  HAL_TIM_Base_Start(&htim2);
+  /* USER CODE END TIM2_Init 2 */
 
 }
 
@@ -617,33 +519,36 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
-    HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_SET);
+#if PRECHARGER_DEBUG
+  HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_SET);
+#endif
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
-{
-	HAL_CAN_GetRxMessage(hcan, 0, &rx_header, rx_data);
-	if (rx_header.ExtId == 0x101){
-	// we need to have it so it does the parsing part here and then set a flag
-		// make the message with the data we're going to give to the gatekeeper task:
-		received_message.id = rx_header.IDE == CAN_ID_STD ? rx_header.StdId : rx_header.ExtId;
-		received_message.dlc = rx_header.DLC;
-		received_message.is_extended = (rx_header.IDE == CAN_ID_EXT);
-		received_message.is_rtr = (rx_header.RTR == CAN_RTR_REMOTE);
-		memcpy(received_message.data, rx_data, rx_header.DLC);
-		// message data will look like 00000 - 11111, anything outside of that range is rubbish
-		if (*received_message.data > -1 && *received_message.data < 32){
-			//set flag
-			messageFlag = 1;
 
-		} // else, we received rubbish data, ignore it
-	}
+#define BOARD_TYPE_FLASH_ADDRESS 0x0803F800 /* Page 127, NEVER PUT ANY CODE HERE */
+static void initBoardIds(void)
+{
+  uint8_t noBoardTypeMsg[] = "INVALID BOARD TYPE FOUND IN FLASH, PLEASE LOAD A VALID BOARD TYPE ONTO 0x0803F800 WITH STM32CUBEPROGRAMMER\0";
+  uint32_t* typeFlashAddress = (uint32_t*)BOARD_TYPE_FLASH_ADDRESS;
+
+  boardIds.type = (Contactor_Type)(*typeFlashAddress);
+  
+  if(boardIds.type >= CONTACTOR_TYPE_NUM)
+  {
+    while(1)
+    {
+      HAL_UART_Transmit(&huart2, noBoardTypeMsg, strlen(noBoardTypeMsg), HAL_MAX_DELAY);
+    }
+  }
+
+  boardIds.canIdOffset = boardIds.type;
+
+  boardIds.extendedId = true; /* use extended Id, TBD */
 }
 
-//void HAL
 /* USER CODE END 4 */
 
 /**
