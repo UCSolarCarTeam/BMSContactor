@@ -86,6 +86,28 @@ void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
 
+	  uint32_t cfsr = SCB->CFSR;
+	  uint32_t mmar = SCB->MMFAR;
+
+	  // Check if the MemManage fault bits are set (first 8 bits of CFSR)
+	  if (cfsr & 0xFF) {
+	    printf("MemManage fault occurred.\n");
+
+	    // MMARVALID bit (bit 7) tells if MMFAR contains a valid address
+	    if (cfsr & (1 << 7)) {
+	      printf("MMAR (faulting address): 0x%08lX\n", mmar);
+	    } else {
+	      printf("MMAR is not valid.\n");
+	    }
+
+	    // Optional: Print specific causes
+	    if (cfsr & (1 << 0)) printf("Instruction access violation\n");
+	    if (cfsr & (1 << 1)) printf("Data access violation\n");
+	    if (cfsr & (1 << 3)) printf("Unstacking error\n");
+	    if (cfsr & (1 << 4)) printf("Stacking error\n");
+	  } else {
+	    printf("HardFault occurred. Not a MemManage fault.\n");
+	  }
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
@@ -100,7 +122,22 @@ void HardFault_Handler(void)
 void MemManage_Handler(void)
 {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
+    uint32_t cfsr = SCB->CFSR;        // Read fault status
+    uint32_t faultAddr = SCB->MMFAR;  // Address that caused the fault
 
+    if (cfsr & (1 << 7)) { // MMARVALID bit
+        printf("MemManage Fault Address: 0x%08lX\n", faultAddr);
+    } else {
+        printf("MemManage Fault Address not valid\n");
+    }
+
+    // Optional: Decode the type of memory fault
+    if (cfsr & (1 << 0)) printf("Instruction access violation\n");
+    if (cfsr & (1 << 1)) printf("Data access violation\n");
+    if (cfsr & (1 << 3)) printf("Unstacking error\n");
+    if (cfsr & (1 << 4)) printf("Stacking error\n");
+
+    while (1); // Halt or reset
   /* USER CODE END MemoryManagement_IRQn 0 */
   while (1)
   {

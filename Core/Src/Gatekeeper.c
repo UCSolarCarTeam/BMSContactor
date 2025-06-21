@@ -21,13 +21,13 @@
  * Gloabl Variables
  */
 
-//extern ADC_HandleTypeDef hadc1; **************************************************************************************************************************************************************UNCOMMENT
-extern uint16_t rawValues[2];
+extern ADC_HandleTypeDef hadc1;
+extern volatile uint32_t rawValues[2];
 
 // initializing a struct for the precharger and contactor
 
-extern SwitchInfo_t contactor;
-extern SwitchInfo_t precharger;
+extern volatile SwitchInfo_t contactor;
+extern volatile SwitchInfo_t precharger;
 
 
 /*
@@ -45,7 +45,7 @@ int64_t removeNoise()
 	int64_t initial_adcCount_y1 = rawValues[0];
 
 	// our ADC reads the analog value and converts it into a number by multiplying it by 4096 (number of total number values). Now, we want to get the actual current so we divide by 4095 (the total number of combinations (since we start at 0)) and then we multiply by 3.3V since we are measuring 3.3. ADC resolution.
-	int64_t voltage_1  = ((initial_adcCount_y1 * 3.3) / 4095);
+	int64_t voltage_1  = ((initial_adcCount_y1 * 3.3) / (4095));
 
 	// minus the 2 offset
 	int64_t voltaget_with_offset_1 = voltage_1 - 2;
@@ -54,7 +54,7 @@ int64_t removeNoise()
 	int64_t shunt_resistor_voltage_1 = (voltaget_with_offset_1 * 0.0025);
 
 	// get the current
-	int64_t current_1 = shunt_resistor_voltage_1 / (precharger.resistance);
+	int64_t current_1 = (shunt_resistor_voltage_1 / (precharger.resistance)/1000);
 
 
 	HAL_Delay(1); // the clock frequency is 80 MHz. So it waits 1 ticks (1 millisecond)
@@ -76,7 +76,7 @@ int64_t removeNoise()
 	int64_t shunt_resistor_voltage_2 = (voltaget_with_offset_2 * 0.0025);
 
 	// get the current
-	int64_t current_2 = shunt_resistor_voltage_2 / (precharger.resistance);
+	int64_t current_2 = (shunt_resistor_voltage_2 / (precharger.resistance)/1000);
 
 
 	// now we take the average of the two
@@ -176,7 +176,7 @@ void Gatekeeper(CAN_Message *message)
 
 			// we need to first tell the Precharge_Sense_ON pin to close
 			HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_SET);
-
+			HAL_Delay(10);
 			// to safely close the switch, we would need to first close the precharger to voltage spike.
 			PrechargerState = changeSwitch(&precharger, precharger.Switch_State, CLOSED, precharger.Delay);
 			// this will return if it's closed or not

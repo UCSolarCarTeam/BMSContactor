@@ -41,7 +41,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define CONTACTOR_TYPE COMMON   // WILL CHANGE BASED ON CONACTOR **
+#define CONTACTOR_TYPE LV   // WILL CHANGE BASED ON CONACTOR **
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -89,10 +89,10 @@ uint8_t heartData[8];
 uint16_t heartbeat;
 
 // initializing buffer for DMA
-uint16_t rawValues[2] = {0};
+uint32_t volatile rawValues[2] = {0};
 uint32_t heartbeat_extendedIDE = 0x200 + CONTACTOR_TYPE;
 
-SwitchInfo_t contactor =
+SwitchInfo_t volatile contactor =
 	{
 		.GPIO_Port = Contactor_ON_Output_GPIO_Port,
 		.GPIO_Pin = Contactor_ON_Output_Pin,
@@ -111,7 +111,7 @@ SwitchInfo_t contactor =
 		.lineCurrentAmpsPerADCVoltage = 50  // WILL CHANGE BASED ON CONACTOR ** can be 100!!! or 30!!!
 	};
 
-SwitchInfo_t precharger =
+SwitchInfo_t volatile precharger =
 {
 			.GPIO_Port = PRECHARGE_ON_Output_GPIO_Port,
 			.GPIO_Pin = PRECHARGE_ON_Output_Pin,
@@ -120,7 +120,7 @@ SwitchInfo_t precharger =
 			.Switch_State = OPEN, // All pins except the common should start off as open.
 			.switchError = false,
 	//		.Delay = 3000, // DOESN'T NEED A DELAY
-			.resistance = 0.005, // WILL CHANGE BASED ON CONACTOR ** IT COULD 0.3!!!
+			.resistance = 0.005, // CAN'T BE ZEROOOOO!!!!!(0.005 -> 5) WILL CHANGE BASED ON CONACTOR ** IT COULD 0.3!!!
 			.threshold = 1, // WILL CHANGE BASED ON CONACTOR **
 			.isContactor = 0,
 			.derivative_threshold = 1 // WILL CHANGE BASED ON CONACTOR **
@@ -138,13 +138,21 @@ void checkState(){
 	}
 	// if we're not common, check the same thing for our contactor
 	if (contactor.WhichContactor != COMMON){
-		precharger.Switch_State = HAL_GPIO_ReadPin(DIAG_N_Input_GPIO_Port, DIAG_N_Input_Pin);
-
-		if (precharger.Switch_State == CLOSED){
-			precharger.GPIO_State = GPIO_PIN_SET; // set the pin
+//		precharger.Switch_State = HAL_GPIO_ReadPin(DIAG_N_Input_GPIO_Port, DIAG_N_Input_Pin);
+		if(rawValues[1] >= PRECHARGE_COMPLETE_THRESHOLD_ADC_COUNT){
+			precharger.Switch_State = CLOSED;
+			precharger.GPIO_State = GPIO_PIN_SET;
 		} else {
+			precharger.Switch_State = OPEN;
 			precharger.GPIO_State = GPIO_PIN_RESET; // ensure it's reset
+
 		}
+//
+//		if (precharger.Switch_State == CLOSED){
+//			precharger.GPIO_State = GPIO_PIN_SET; // set the pin
+//		} else {
+//			precharger.GPIO_State = GPIO_PIN_RESET; // ensure it's reset
+//		}
 	}
 
 
@@ -186,7 +194,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	TxData[2] = (state_status >> 16) & 0xFF;
 	TxData[3] = (state_status >> 24) & 0xFF;
 
-	HAL_ADC_Start_DMA(&hadc1, (uint32_t *) rawValues, 2);
+//	HAL_ADC_Start_DMA(&hadc1, (uint32_t *) rawValues, 2);
 
 	// send the message
 	SendingCANMessage(contactor.extendedID, TxData, 4);
@@ -250,28 +258,34 @@ int main(void)
   MX_TIM16_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-    checkState();
+//    checkState();
 
   HAL_CAN_Start(&hcan1);
 
-  //start the timer
-  HAL_TIM_Base_Start_IT(&htim16);
+//  //start the timer
+//  HAL_TIM_Base_Start_IT(&htim16);
   //
   //  // start ADC+DMA
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t *) rawValues, 2);
-  uint8_t msg[] = "Received\r\n";
-  uint8_t msg2[] = "Message Not Received\r\n";
+//  HAL_ADC_Start_DMA(&hadc1, (uint32_t *) rawValues, 2);
 
-  uint32_t testID = 0x101;
+  //start the timer
+//  HAL_TIM_Base_Start_IT(&htim16);
+
+  checkState();
+
+//  uint8_t msg[] = "Received\r\n";
+//  uint8_t msg2[] = "Message Not Received\r\n";
+
+//  uint32_t testID = 0x101;
 
 
-  CAN_TxHeaderTypeDef canTxHeader;
-	canTxHeader.IDE 	= CAN_ID_EXT;
-	canTxHeader.RTR 	= CAN_RTR_DATA;
-	canTxHeader.ExtId  	= testID;
-	canTxHeader.DLC 	= 8;
-  uint8_t counter = 0;
-  uint32_t mailbox;
+//  CAN_TxHeaderTypeDef canTxHeader;
+//	canTxHeader.IDE 	= CAN_ID_EXT;
+//	canTxHeader.RTR 	= CAN_RTR_DATA;
+//	canTxHeader.ExtId  	= testID;
+//	canTxHeader.DLC 	= 8;
+//  uint8_t counter = 0;
+//  uint32_t mailbox;
 
   /* USER CODE END 2 */
 
@@ -286,11 +300,20 @@ int main(void)
 	checkState();
 //	HAL_GPIO_WritePin(precharger.GPIO_Port, precharger.GPIO_Pin, GPIO_PIN_SET);
 
-	if (messageFlag == 1){
+//	if (messageFlag == 1){
+	received_message.id = rx_header.IDE == CAN_ID_STD ? rx_header.StdId : rx_header.ExtId;
+	received_message.dlc = rx_header.DLC;
+	received_message.is_extended = (rx_header.IDE == CAN_ID_EXT);
+	received_message.is_rtr = (rx_header.RTR == CAN_RTR_REMOTE);
+//		memcpy(
+	received_message.data[0] = 0b00001001;
+	received_message.data[1] = 0b00000000;
+	received_message.data[2] = 0b00000000;
+	received_message.data[3] = 0b00000000;
 //		HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
-		Gatekeeper(&received_message);
+		Gatekeeper(received_message);
 		messageFlag = 0;
-	}
+//	}
 //	else {
 //		HAL_UART_Transmit(&huart2, msg2, strlen(msg2), HAL_MAX_DELAY);
 //	}

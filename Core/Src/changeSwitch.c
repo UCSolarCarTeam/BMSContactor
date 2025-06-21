@@ -17,6 +17,7 @@
 extern volatile SwitchInfo_t precharger;
 extern volatile SwitchInfo_t contactor;
 extern uint8_t TxData[8]; // for sending CAN messages
+extern volatile uint32_t rawValues[2];
 
 /*
  * This function is called from the Gatekeeper
