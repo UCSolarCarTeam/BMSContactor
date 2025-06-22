@@ -148,14 +148,10 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
+  AdcUserInit();
   initBoardIds();
- 
   checkState();
-
-  //start the timer
   HAL_TIM_Base_Start_IT(&htim16);
-
-
 
   /* USER CODE END 2 */
 
@@ -289,6 +285,7 @@ static void MX_ADC1_Init(void)
   }
   /* USER CODE BEGIN ADC1_Init 2 */
 
+  HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
   /* USER CODE END ADC1_Init 2 */
 
 }
@@ -540,7 +537,7 @@ static void initBoardIds(void)
   {
     while(1)
     {
-      HAL_UART_Transmit(&huart2, noBoardTypeMsg, strlen(noBoardTypeMsg), HAL_MAX_DELAY);
+      HAL_UART_Transmit(&huart2, noBoardTypeMsg, strlen((char *)noBoardTypeMsg), HAL_MAX_DELAY);
     }
   }
 

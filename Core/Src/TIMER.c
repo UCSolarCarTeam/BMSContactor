@@ -51,6 +51,7 @@ bool TimDelayExpired(uint32_t start, uint32_t delay)
   return (bool)(TimGetTimeElapsedSince(start) >= delay);
 } /* End of TimDelayExpired */
 
+uint16_t heartbeat = 0;
 /*==============================================================================================*/
 /**
   * \fn uint32_t TimDelayExpired(void)
@@ -59,7 +60,6 @@ bool TimDelayExpired(uint32_t start, uint32_t delay)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   static uint16_t heartbeatCounter = 0;
-  static uint16_t heartbeat = 0;
   uint8_t heartData[8];
   uint8_t TxData[8];
   uint32_t state_status;

@@ -18,6 +18,7 @@
 
 #define CONTACTOR_COMMAND_ID 0x101
 
+uint16_t* AdcReturnAdcBuffer(void);
 uint32_t makingCANMessage();
 bool Check_CAN_Messages(void);
 CAN_TxHeaderTypeDef SendingCANMessage(uint32_t extendedID, uint8_t* Data, uint8_t DLC_num);

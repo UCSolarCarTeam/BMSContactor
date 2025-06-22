@@ -12,6 +12,7 @@
 
 void AdcTask(void);
 uint16_t* AdcReturnAdcBuffer(void);
+void AdcUserInit(void);
 
 /** ADC peripheral state enum */
 typedef enum e_ADC_State

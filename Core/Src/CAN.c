@@ -147,7 +147,7 @@ CAN_TxHeaderTypeDef SendingCANMessage(uint32_t extendedID, uint8_t* data, uint8_
 
 	// send the message! Otherwise, handle the error
 	if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, data, &TxMailbox) != HAL_OK){
-		Error_Handler();
+		/* Added blink of bad LED, not error handler as it would stop functionaluty */
 	}
 
 	// return for debugging

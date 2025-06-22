@@ -114,3 +114,17 @@ void AdcTask(void)
   }
 }
 
+void AdcUserInit(void)
+{
+  uint32_t delayStart;
+  /* ADC needs 4 clock cycles after calibration is done to be properly enabled */
+  /* Add 1us delay */
+  delayStart = TimGetTime();
+  TimDelayExpired(delayStart, 10);
+
+  /* Enable ADC without setting rs (read_set) bits */
+  hadc1.Instance->CR = (hadc1.Instance->CR & ~ADC_CR_BITS_PROPERTY_RS) | ADC_CR_ADEN;
+
+  /* Wait for ADC to set ready flag */
+  while((hadc1.Instance->CR & ADC_ISR_ADRDY) == 0);
+}
