@@ -20,20 +20,12 @@ extern bool contactorCommandClose;
 static Contactor_State contactorState = ALL_OPEN;
 static uint32_t stateDelayStart = 0;
 static uint32_t errorDelayStart = 0;
-static uint32_t pointStartOne = 0;
-static uint32_t pointStartTwo = 0;
-static int64_t avg_current_1;
-static int64_t avg_current_2;
-static int64_t avg_current_3;
-static int64_t avg_current_4;
-static bool checkStateStatus1;
-static bool checkStateStatus2;
-static bool checkStateStatus3;
-static bool checkStateStatus4;
-float initial_deriv;
-float latest_deriv;
-float h = 0.000000125 * TICKS_BETWEEN_SAMPLING_POINTS; // we want h to be equal to 1 tick. 1 tick is 0.000125 milliseconds. So 0.000000125 seconds * how every many ticks we do
 
+static void enterAllOpenState();
+static void enterPrecharging1State();
+static void enterPrecharging2State();
+static void enterClosingContactorState();
+static void enterContactorClosedState();
 
 void ContactorTask(void)
 {
@@ -142,7 +134,7 @@ void ContactorTask(void)
 	return;
 }
 
-void enterAllOpenState()
+static void enterAllOpenState()
 {
 	HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_RESET);
@@ -150,7 +142,7 @@ void enterAllOpenState()
 	contactorState = ALL_OPEN;
 }
 
-void enterPrecharging1State()
+static void enterPrecharging1State()
 {
 	if(boardIds.type != COMMON)
 	{
@@ -160,7 +152,7 @@ void enterPrecharging1State()
 	contactorState = PRECHARGING1;
 }
 
-void enterPrecharging2State()
+static void enterPrecharging2State()
 {
 	if(boardIds.type != COMMON)
 	{
@@ -170,7 +162,7 @@ void enterPrecharging2State()
 	contactorState = PRECHARGING2;
 }
 
-void enterClosingContactorState()
+static void enterClosingContactorState()
 {
 	HAL_GPIO_WritePin(Contactor_ON_Output_GPIO_Port, Contactor_ON_Output_Pin, GPIO_PIN_SET);
 	stateDelayStart = TimGetTime();
@@ -178,7 +170,7 @@ void enterClosingContactorState()
 	contactorState = CLOSING_CONTACTOR;
 }
 
-void enterContactorClosedState()
+static void enterContactorClosedState()
 {
 	// open the precharger
 	HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_RESET);
