@@ -22,5 +22,6 @@ void setDebugLED(SwitchInfo_t* switch_to_change);
 
 void Gatekeeper(CAN_Message *message);
 void ContactorTask(void);
-
+float func(float x);
+bool removeNoise(int64_t *avg_current);
 #endif /* INC_CONTACTOR_H_ */

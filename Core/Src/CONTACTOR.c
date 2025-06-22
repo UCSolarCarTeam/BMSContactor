@@ -20,6 +20,20 @@ extern bool contactorCommandClose;
 static Contactor_State contactorState = ALL_OPEN;
 static uint32_t stateDelayStart = 0;
 static uint32_t errorDelayStart = 0;
+static uint32_t pointStartOne = 0;
+static uint32_t pointStartTwo = 0;
+static int64_t avg_current_1;
+static int64_t avg_current_2;
+static int64_t avg_current_3;
+static int64_t avg_current_4;
+static bool checkStateStatus1;
+static bool checkStateStatus2;
+static bool checkStateStatus3;
+static bool checkStateStatus4;
+float initial_deriv;
+float latest_deriv;
+float h = 0.000000125 * TICKS_BETWEEN_SAMPLING_POINTS; // we want h to be equal to 1 tick. 1 tick is 0.000125 milliseconds. So 0.000000125 seconds * how every many ticks we do
+
 
 void ContactorTask(void)
 {
@@ -38,6 +52,20 @@ void ContactorTask(void)
 				{
 					/* common does not precharge */
 					enterClosingContactorState();
+				}
+			}
+			else{
+				// be sure you're open
+				enterAllOpenState();
+				// check if you're open
+				checkState();
+
+				// handling the case where we want to open the contactor but it's not opening (BPS Error - very serious)
+				if (contactor.GPIO_State != GPIO_PIN_RESET){
+					enterAllOpenState();
+					contactor.BPSError = true;
+				} else {
+					contactor.BPSError = false;
 				}
 			}
 		break;
@@ -61,10 +89,72 @@ void ContactorTask(void)
 			}
 			else
 			{
-				if(TimDelayExpired(stateDelayStart, 1000000)) /* Wait 1 second for precharging */
-				{
-					enterClosingContactorState();
+				// this is chatgbt's cleaner version of the code I hashed out below. Might not work cuz chatgbt is stupid sometimes. Clean but stupid
+				if (!removeNoise(&avg_current_1)) break;
+				if (!removeNoise(&avg_current_2)) break;
+				initial_deriv = (func(avg_current_2) - func(avg_current_1))/h; 		// now we gotta take the differential of the current so we're gonna have time on the x-axis and the y-axis is the current
+
+				if(!TimDelayExpired(stateDelayStart, 1000000)) break; /* Wait 1 second (1000000 microseconds) for precharging */
+
+				if (!removeNoise(&avg_current_3)) break;
+				if (!removeNoise(&avg_current_4)) break;
+
+				latest_deriv = (func(avg_current_4) - func(avg_current_3))/h;
+
+			    bool deriv_ok = (latest_deriv <= precharger.derivative_threshold);
+			    bool current_ok = (avg_current_4 <= precharger.threshold);
+
+			    if (deriv_ok && current_ok){
+			    	enterClosingContactorState();
+			    	break;
+			    }
+
+				precharger.switchError = true;
+				HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_RESET);
+
+	/*	This is my original hashed out version of the code
+				checkStateStatus1 = removeNoise(&avg_current_1);
+				if (checkStateStatus1){
+					checkStateStatus2 = removeNoise(&avg_current_2);
+
+					// now we gotta take the differential of the current so we're gonna have time on the x-axis and the y-axis is the current
+					initial_deriv = (func(avg_current_2) - func(avg_current_1))/h;
+
+					// ok so we got the inital values yay
+					// now we gotta wait a sec
+					if(TimDelayExpired(stateDelayStart, 1000000)) // Wait 1 second (1000000 microseconds) for precharging
+					{
+						checkStateStatus3 = removeNoise(&avg_current_3);
+						if (checkStateStatus3){
+							checkStateStatus4 = removeNoise(&avg_current_4);
+
+							latest_deriv = (func(avg_current_4) - func(avg_current_3))/h;
+
+							// check if the derivative of the latest - the initial is above a certain threshold value
+							if ((latest_deriv) <= precharger.derivative_threshold){ // check if the derivative of the latest - the initial is above a certain threshold value
+								if ((avg_current_4 <= precharger.threshold)){ // now we gotta check if we pass the threshold for the value (is it close to 0?)
+									// yay, it's precharged, let's try closing the contactor:
+									enterClosingContactorState();
+								} else{ // Precharge Error
+									precharger.switchError = true;
+									HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_RESET);
+									HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_RESET);
+								}
+							} else{ // Precharge Error
+								precharger.switchError = true;
+								HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_RESET);
+								HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_RESET);
+							}
+						}
+					}
 				}
+	*/
+
+//				if(TimDelayExpired(stateDelayStart, 1000000)) /* Wait 1 second (1000000 microseconds) for precharging */
+//				{
+//					enterClosingContactorState();
+//				}
 			}
 		break;
 		case CLOSING_CONTACTOR:
@@ -84,6 +174,8 @@ void ContactorTask(void)
 					{
 						/* Failed to close, return to ALL_OPEN*/
 						enterAllOpenState();
+						// error, should it try closing 3-5 times before calling it an error?
+						contactor.switchError = true;
 					}
 				}
 			}
@@ -98,10 +190,12 @@ void ContactorTask(void)
 		case CONTACTOR_ERROR:
 			/* Constantly open contactor until reboot */
 			changeSwitch(&contactor, contactor.Switch_State, OPEN, contactor.Delay);
+			contactor.switchError = true;
 		break;
 		default:
 			/* unknown state, open contactor */
 			enterAllOpenState();
+			contactor.switchError = true;
 		break;
 	}
 
@@ -111,6 +205,7 @@ void ContactorTask(void)
 void enterAllOpenState()
 {
 	HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(Contactor_ON_Output_GPIO_Port, Contactor_ON_Output_Pin, GPIO_PIN_RESET);
 	contactorState = ALL_OPEN;
 }
@@ -145,7 +240,10 @@ void enterClosingContactorState()
 
 void enterContactorClosedState()
 {
+	// open the precharger
 	HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_RESET);
+
 	contactorState = CONTACTOR_CLOSED;
 }
 
@@ -162,12 +260,12 @@ void checkState(void)
   	else
   	{
 		contactor.Switch_State = OPEN;
+
 	}
 
 	// Update contactor state (No common precharger)
 	if (boardIds.type != COMMON)
   	{
-    //precharger.Switch_State = HAL_GPIO_ReadPin(DIAG_N_Input_GPIO_Port, DIAG_N_Input_Pin);
 		if(adcBuffer[1] >= PRECHARGE_COMPLETE_THRESHOLD_ADC_COUNT)
     	{
 			precharger.Switch_State = CLOSED;
@@ -194,15 +292,17 @@ void checkState(void)
  *		message: CAN message
  */
 
-uint64_t func(float x)
+float func(float x)
 {
 	return (2*x*x + 1);
 }
 
-int64_t removeNoise()
+bool removeNoise(int64_t *avg_current)
 {
 /* needs to be reworked for no delay handling */
 #if 0
+
+	pointStartOne = TimGetTime(); // get the current time
 	int64_t initial_adcCount_y1 = adcBuffer[0];
 
 	// our ADC reads the analog value and converts it into a number by multiplying it by 4096 (number of total number values). Now, we want to get the actual current so we divide by 4095 (the total number of combinations (since we start at 0)) and then we multiply by 3.3V since we are measuring 3.3. ADC resolution.
@@ -217,33 +317,33 @@ int64_t removeNoise()
 	// get the current
 	int64_t current_1 = (shunt_resistor_voltage_1 / (precharger.resistance)/1000);
 
+	if (TimDelayExpired(pointStartTwo, 1000)) /* Waits 1000 microseconds (1 milliseconds) */
+	{
+		// we're going to sample 2 points very close to each other to bypass noise and make it nominal
 
-	HAL_Delay(1); // the clock frequency is 80 MHz. So it waits 1 ticks (1 millisecond)
+		int64_t initial_adcCount_y2 = adcBuffer[0];
 
-	// we're going to sample 2 points very close to each other to bypass noise and make it nominal
+		// the 3.3 and 4096 are for the ADC resolution
+		int64_t voltage_2  = ((initial_adcCount_y2 * 3.3) / 4095);
 
-	int64_t initial_adcCount_y2 = adcBuffer[0];
+		// minus the 2 offset
+		int64_t voltaget_with_offset_2 = voltage_2 - 2;
 
+		// we have to convert adc voltage to shunt resistor (done through (Vadc)* 0.0025)
+		int64_t shunt_resistor_voltage_2 = (voltaget_with_offset_2 * 0.0025);
 
-
-
-	// the 3.3 and 4096 are for the ADC resolution
-	int64_t voltage_2  = ((initial_adcCount_y2 * 3.3) / 4095);
-
-	// minus the 2 offset
-	int64_t voltaget_with_offset_2 = voltage_2 - 2;
-
-	// we have to convert adc voltage to shunt resistor (done through (Vadc)* 0.0025)
-	int64_t shunt_resistor_voltage_2 = (voltaget_with_offset_2 * 0.0025);
-
-	// get the current
-	int64_t current_2 = (shunt_resistor_voltage_2 / (precharger.resistance)/1000);
+		// get the current
+		int64_t current_2 = (shunt_resistor_voltage_2 / (precharger.resistance)/1000);
 
 
-	// now we take the average of the two
-	int64_t avg_current = (current_2 + current_1)/2;
+		// now we take the average of the two
+		avg_current = (current_2 + current_1)/2;
 
-	return avg_current;
+		return true;
+	}
+	return false;
+
+
 #endif
 
 	return 0;
@@ -429,7 +529,7 @@ bool changeSwitch(SwitchInfo_t* switch_to_change, SwitchState current_state, Swi
 				setSwitch(switch_to_change, SWITCH_ERROR); // if we get an error, open the switch
 				return false;
 			}
-			HAL_Delay(delayTime); // wait for a bit before checking if we achieved our goal
+//			HAL_Delay(delayTime); // wait for a bit before checking if we achieved our goal
 
 		}
 		// this case is reached in case we couldn't close the contactor
@@ -473,7 +573,7 @@ SwitchState setSwitch(SwitchInfo_t* switch_to_change, SwitchState wanted_state)
 	switch (wanted_state){
 			case OPEN:
 				HAL_GPIO_WritePin(switch_to_change->GPIO_Port, switch_to_change->GPIO_Pin, GPIO_PIN_RESET);
-				HAL_Delay(switch_to_change->Delay); // wait for a bit before checking if we achieved our goal
+//				HAL_Delay(switch_to_change->Delay); // wait for a bit before checking if we achieved our goal
 
 				if(switch_to_change->isContactor == true){ // OPEN-ing Contactor
 					if(HAL_GPIO_ReadPin(switch_to_change->GPIO_Port_Sense, switch_to_change->GPIO_Pin_Sense) == 0){
@@ -496,7 +596,7 @@ SwitchState setSwitch(SwitchInfo_t* switch_to_change, SwitchState wanted_state)
 				HAL_GPIO_WritePin(switch_to_change->GPIO_Port, switch_to_change->GPIO_Pin, GPIO_PIN_SET);
 
 				if(switch_to_change->isContactor == true){ // CLOSE-ing Contactor, check if GPIO is SET (closed)
-					HAL_Delay(switch_to_change->Delay); // wait for a bit before checking if we achieved our goal
+//					HAL_Delay(switch_to_change->Delay); // wait for a bit before checking if we achieved our goal
 					if(HAL_GPIO_ReadPin(switch_to_change->GPIO_Port_Sense, switch_to_change->GPIO_Pin_Sense) == 1){
 						switch_to_change->Switch_State = CLOSED; // set the switch state to OPEN
 						return CLOSED; // if the switch is closed, return closed
