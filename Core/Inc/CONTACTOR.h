@@ -15,12 +15,25 @@
 
 #define TICKS_BETWEEN_SAMPLING_POINTS 100 // we can adjust this based off of testing the sampling points
 
-void checkState(void);
-bool changeSwitch(SwitchInfo_t* switch_to_change, SwitchState current_state, SwitchState wanted_state, uint32_t delayTime);
-SwitchState setSwitch(SwitchInfo_t* switch_to_change, SwitchState wanted_state);
-void setDebugLED(SwitchInfo_t* switch_to_change);
+#define COMMON_LINE_CURRENT_RATIO 50U
+#define MOTOR_LINE_CURRENT_RATIO  50U
+#define ARRAY_LINE_CURRENT_RATIO  50U
+#define LV_LINE_CURRENT_RATIO     50U
+#define CHARGE_LINE_CURRENT_RATIO 50U
 
-void Gatekeeper(CAN_Message *message);
+#define COMMON_PRECHARGER_RESISTANCE   0.005 
+#define MOTOR_PRECHARGER_RESISTANCE    0.005
+#define ARRAY_PRECHARGER_RESISTANCE    0.005
+#define LV_PRECHARGER_RESISTANCE       0.005
+#define CHARGE_PRECHARGER_RESISTANCE   0.005
+
+#define COMMON_CONTACTOR_RESISTANCE   6.6
+#define MOTOR_CONTACTOR_RESISTANCE    6.6
+#define ARRAY_CONTACTOR_RESISTANCE    6.6
+#define LV_CONTACTOR_RESISTANCE       6.6
+#define CHARGE_CONTACTOR_RESISTANCE   6.6
+
+void checkState(void);
 void ContactorTask(void);
 float func(float x);
 bool removeNoise(int64_t *avg_current);

@@ -36,6 +36,18 @@
 #define CONTACTOR_CLOSE 1
 #define CONTACTOR_OPEN 0
 
+// assigning all the contactors a number. Must match order in CAN message IDs
+typedef enum
+{
+    COMMON = 0,
+    MOTOR,
+    ARRAY,
+    LV,
+    CHARGE,
+    CONTACTOR_TYPE_NUM,
+    NONE,
+} Contactor_Type;
+
 // assigning all the states of the switch a number
 typedef enum
 {
@@ -45,18 +57,6 @@ typedef enum
     SWITCH_ERROR,
 	BPS_ERROR
 } SwitchState;
-
-// assigning all the contactors a number. Must match order in CAN message IDs
-typedef enum
-{
-	COMMON = 0,
-	MOTOR,
-	ARRAY,
-	LV,
-    CHARGE,
-    CONTACTOR_TYPE_NUM,
-    NONE,
-} Contactor_Type;
 
 // assigning all the contactors a number
 typedef enum
@@ -83,12 +83,26 @@ typedef struct
     bool BPSError;
     uint16_t Delay;
     uint32_t resistance;
-    uint32_t threshold;
-    uint32_t derivative_threshold;
-    bool isContactor;
     uint32_t lineCurrentAmpsPerADCVoltage;
 
-} SwitchInfo_t;
+} Contactor_t;
+
+typedef struct
+{
+	GPIO_TypeDef * GPIO_Port;
+	uint16_t GPIO_Pin;
+	GPIO_TypeDef * GPIO_Port_Sense;
+	uint16_t GPIO_Pin_Sense;
+	GPIO_PinState GPIO_State;
+	SwitchState Switch_State;
+    bool switchError;
+    bool BPSError;
+    uint16_t Delay;
+    uint32_t resistance;
+    uint32_t threshold;
+    uint32_t derivative_threshold;
+
+} Precharger_t;
 
 // this is the message struct
 typedef struct {

@@ -11,21 +11,69 @@
 #include "TIMER.h"
 #include "main.h"
 
+
+/* global variables */
 extern ADC_HandleTypeDef hadc1;
-extern volatile SwitchInfo_t contactor;
-extern volatile SwitchInfo_t precharger;
 extern BoardIds boardIds;
 extern bool contactorCommandClose;
+Precharger_t precharger = {0};
+Contactor_t contactor = {0};
 
+/* Local variables */
 static Contactor_State contactorState = ALL_OPEN;
 static uint32_t stateDelayStart = 0;
 static uint32_t errorDelayStart = 0;
+
+uint32_t lineCurrentPerContactor[] = {COMMON_LINE_CURRENT_RATIO,
+									MOTOR_LINE_CURRENT_RATIO,
+									ARRAY_LINE_CURRENT_RATIO,
+									LV_LINE_CURRENT_RATIO,
+									CHARGE_LINE_CURRENT_RATIO};
+uint32_t prechargerResistancePerContactor[] = {COMMON_PRECHARGER_RESISTANCE,
+											 MOTOR_PRECHARGER_RESISTANCE,
+											 ARRAY_PRECHARGER_RESISTANCE,
+											 LV_PRECHARGER_RESISTANCE,
+											 CHARGE_PRECHARGER_RESISTANCE};
+uint32_t contactorResistancePerContactor[] = {COMMON_CONTACTOR_RESISTANCE,
+											MOTOR_CONTACTOR_RESISTANCE,
+											ARRAY_CONTACTOR_RESISTANCE,
+											LV_CONTACTOR_RESISTANCE,
+											CHARGE_CONTACTOR_RESISTANCE};
 
 static void enterAllOpenState();
 static void enterPrecharging1State();
 static void enterPrecharging2State();
 static void enterClosingContactorState();
 static void enterContactorClosedState();
+
+void initContactor(void)
+{
+	Contactor_Type type = boardIds.type;
+
+	precharger.GPIO_Port = PRECHARGE_ON_Output_GPIO_Port,
+	precharger.GPIO_Pin = PRECHARGE_ON_Output_Pin,
+	precharger.GPIO_Port_Sense = PRECHARGE_Sense_On_Output_GPIO_Port,
+	precharger.GPIO_Pin_Sense = PRECHARGE_Sense_On_Output_Pin,
+	precharger.Switch_State = OPEN, // All pins except the common should start off as open.
+	precharger.switchError = false,
+	//precharger.Delay = 3000, // DOESN'T NEED A DELAY
+	precharger.resistance = 0.005, // Cannot be 0. WILL CHANGE BASED ON CONACTOR ** IT COULD 0.3!!!
+	precharger.threshold = 1, // WILL CHANGE BASED ON CONACTOR **
+	precharger.derivative_threshold = 1; // WILL CHANGE BASED ON CONACTOR **
+
+	contactor.GPIO_Port = Contactor_ON_Output_GPIO_Port,
+  	contactor.GPIO_Pin = Contactor_ON_Output_Pin,
+  	contactor.GPIO_Port_Sense = Contactor_Aux_Input_GPIO_Port,
+  	contactor.GPIO_Pin_Sense = Contactor_Aux_Input_Pin,
+  	contactor.GPIO_State = GPIO_PIN_RESET, // All pins except the common should start off as open. Reset = 0
+  	contactor.Switch_State = OPEN, // All pins except the common should start off as open.
+  	contactor.switchError = false,
+  	contactor.BPSError = false,
+  	//contactor.Delay = 8000*250, // NEEDS A DELAY OF ABOUT A 1/4 OF A SECOND
+  	contactor.Delay = 250, // NEEDS A DELAY OF ABOUT A 1/4 OF A SECOND
+  	//contactor.resistance = contactorResistancePerContactor[type]
+  	contactor.lineCurrentAmpsPerADCVoltage = lineCurrentPerContactor[type];// WILL CHANGE BASED ON CONACTOR ** can be 100!!! or 30!!!
+}
 
 void ContactorTask(void)
 {

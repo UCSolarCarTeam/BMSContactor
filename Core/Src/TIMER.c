@@ -11,8 +11,8 @@
 
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim16;
-extern volatile SwitchInfo_t contactor;
-extern volatile SwitchInfo_t precharger;
+extern volatile Contactor_t contactor;
+extern volatile Precharger_t precharger;
 extern BoardIds boardIds;
 
 /*==============================================================================================*/
@@ -60,7 +60,7 @@ uint16_t heartbeat = 0;
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   static uint16_t heartbeatCounter = 0;
-  uint8_t heartData[8];
+  uint8_t heartData[2];
   uint8_t TxData[8];
   uint32_t state_status;
 

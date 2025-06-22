@@ -10,8 +10,8 @@
 
 extern CAN_HandleTypeDef hcan1;
 
-extern SwitchInfo_t precharger;
-extern SwitchInfo_t contactor;
+extern Precharger_t precharger;
+extern Contactor_t contactor;
 //extern uint16_t raw_current;
 //extern uint16_t raw_voltage;
 
@@ -86,6 +86,7 @@ uint32_t makingCANMessage()
 	uint8_t contactorError;
 	uint8_t bpsError;
 	uint16_t* adcBuffer = AdcReturnAdcBuffer();
+	uint16_t lineCurrent = 0;
 
 	prechargerState = precharger.Switch_State; 	// either 0 = OPEN, 1 = CLOSED, 2 = CLOSING, or 3 = SWITCH_ERROR
 	contactorState = contactor.Switch_State;  	// ditto
@@ -97,38 +98,38 @@ uint32_t makingCANMessage()
 	bpsError = contactor.BPSError; // if the bool is set to 1, there was a BPS error, SERIOUS
 
 	// now we gotta convert them to bytes
-	uint32_t state_status = 0x000000;
+	uint32_t state_status = 0x000000; /* set output to 0 */
 	if (prechargerState == 0 || prechargerState == 1)
 	{
-		state_status = (state_status & 0xFFFFFFFE) | ((prechargerState & 0x1) << 0);  	  	// Bit 0: PrechargerState is open or closed
+		state_status |= ((prechargerState & 0x1) << 0);  	  	// Bit 0: PrechargerState is open or closed
 	}
 	else if (prechargerState == 2)
 	{
-		state_status = (state_status & 0xFFFFFFFD) | (0x1 << 1);  	  	// Bit 1: PrechargerState is closing or not
+		state_status |= (0x1 << 1);  	  	// Bit 1: PrechargerState is closing or not
 	}
 
-	state_status = (state_status & 0xFFFFFFFB) | ((prechargerError & 0x1) << 2); 			// Bit 2: If the precharger failed to get to the wanted state or not
+	state_status |= ((prechargerError & 0x1) << 2); 			// Bit 2: If the precharger failed to get to the wanted state or not
 
 	if (contactorState == 0 || contactorState == 1)
 	{
-		state_status = (state_status & 0xFFFFFFF7) | ((contactorState & 0x1) << 3);  	  	// Bit 3: contactorState is open or closed
+		state_status |= ((contactorState & 0x1) << 3);  	  	// Bit 3: contactorState is open or closed
 	}
 	else if (contactorState == 2)
 	{
-		state_status  = (state_status & 0xFFFFFFEF) | (0x1 << 4);  	  	// Bit 4: contactorState is closing or not
+		state_status |= (0x1 << 4);  	  	// Bit 4: contactorState is closing or not
 	}
 
-	state_status = (state_status & 0xFFFFFFDF) | ((contactorError & 0x1) << 5); 			// Bit 5: If the contactor failed to get to the wanted state or not
+	state_status |= ((contactorError & 0x1) << 5); 			// Bit 5: If the contactor failed to get to the wanted state or not
 
 	// adding math to convert line current before sending it out onto the CAN Line
 	// now we have to times it by the amps to ADC voltage ratio
-	adcBuffer[1] = adcBuffer[1] * contactor.lineCurrentAmpsPerADCVoltage;
+	lineCurrent = adcBuffer[1] * contactor.lineCurrentAmpsPerADCVoltage;
 
-	state_status = (state_status & 0xFFFC003F) | ((adcBuffer[1] & 0xFFF) << 6);				// Bits 6 - 17: the line current
+	state_status |= ((lineCurrent & 0xFFF) << 6);				// Bits 6 - 17: the line current
 
-	state_status = (state_status & 0xC003FFFF) | ((adcBuffer[0] & 0xFFF) << 18);				// Bits 18 - 30: the charge voltage
+	state_status |= ((adcBuffer[0] & 0xFFF) << 18);				// Bits 18 - 30: the charge voltage
 
-	state_status = (state_status & 0xBFFFFFFF) | ((bpsError & 0x1) << 30); 					// Bit 31: If the contactor failed to open, it's a serious BPS Error
+	state_status |= ((bpsError & 0x1) << 30); 					// Bit 31: If the contactor failed to open, it's a serious BPS Error
 
 	return state_status;
 }

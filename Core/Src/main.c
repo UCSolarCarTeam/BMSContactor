@@ -73,41 +73,10 @@ static void initBoardIds(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+extern volatile Contactor_t contactor;
+extern volatile Precharger_t precharger;
 
-/* CAN Rx variables */
 BoardIds boardIds = {.type = NONE, .canIdOffset = 0xFF, .extendedId = true};
-
-volatile SwitchInfo_t contactor =
-{
-  .GPIO_Port = Contactor_ON_Output_GPIO_Port,
-  .GPIO_Pin = Contactor_ON_Output_Pin,
-  .GPIO_Port_Sense = Contactor_Aux_Input_GPIO_Port,
-  .GPIO_Pin_Sense = Contactor_Aux_Input_Pin,
-  .GPIO_State = GPIO_PIN_RESET, // All pins except the common should start off as open. Reset = 0
-  .Switch_State = OPEN, // All pins except the common should start off as open.
-  .switchError = false,
-  .BPSError = false,
-  //.Delay = 8000*250, // NEEDS A DELAY OF ABOUT A 1/4 OF A SECOND
-  .Delay = 250, // NEEDS A DELAY OF ABOUT A 1/4 OF A SECOND
-  //resistance = 6.6, // WILL CHANGE BASED ON CONACTOR **
-  .isContactor = 1,
-  .lineCurrentAmpsPerADCVoltage = 50  // WILL CHANGE BASED ON CONACTOR ** can be 100!!! or 30!!!
-};
-
-SwitchInfo_t volatile precharger =
-{
-  .GPIO_Port = PRECHARGE_ON_Output_GPIO_Port,
-  .GPIO_Pin = PRECHARGE_ON_Output_Pin,
-  .GPIO_Port_Sense = PRECHARGE_Sense_On_Output_GPIO_Port,
-  .GPIO_Pin_Sense = PRECHARGE_Sense_On_Output_Pin,
-  .Switch_State = OPEN, // All pins except the common should start off as open.
-  .switchError = false,
-  //.Delay = 3000, // DOESN'T NEED A DELAY
-  .resistance = 0.005, // Cannot be 0. WILL CHANGE BASED ON CONACTOR ** IT COULD 0.3!!!
-  .threshold = 1, // WILL CHANGE BASED ON CONACTOR **
-  .isContactor = 0,
-  .derivative_threshold = 1 // WILL CHANGE BASED ON CONACTOR **
-};
 
 /* USER CODE END 0 */
 
