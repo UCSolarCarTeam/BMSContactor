@@ -240,7 +240,6 @@ void checkState(void)
   	else
   	{
 		contactor.Switch_State = OPEN;
-
 	}
 
 	// Update contactor state (No common precharger)

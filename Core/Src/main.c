@@ -119,6 +119,9 @@ int main(void)
 
   AdcUserInit();
   initBoardIds();
+  initContactor();
+
+  
   checkState();
   HAL_TIM_Base_Start_IT(&htim16);
 
