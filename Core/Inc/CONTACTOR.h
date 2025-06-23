@@ -11,7 +11,7 @@
 #include "boardDefines.h"
 
 #define PRECHARGER_ADC_CHANNEL 0
-#define PRECHARGE_COMPLETE_THRESHOLD_ADC_COUNT 100
+#define PRECHARGE_COMPLETE_THRESHOLD_ADC_COUNT 5000
 
 #define TICKS_BETWEEN_SAMPLING_POINTS 100 // we can adjust this based off of testing the sampling points
 
