@@ -194,7 +194,7 @@ static void enterPrecharging1State()
 {
 	if(boardIds.type != COMMON)
 	{
-		//HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_SET);
 	}
 	stateDelayStart = TimGetTime();
 	contactorState = PRECHARGING1;
