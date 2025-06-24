@@ -19,6 +19,8 @@
 #define UART_DEBUG 0
 #define FAKE_CAN 0
 #define PRECHARGER_DEBUG 0
+#define DEBUG_PRECHARGE 0
+#define DEBUG_JENNY 1
 
 #define SYSTEM_UPDATE_PERIOD 10000 /* in us */
 

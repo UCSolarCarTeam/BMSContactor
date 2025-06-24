@@ -87,11 +87,13 @@ uint32_t makingCANMessage()
 	uint8_t bpsError;
 	uint16_t* adcBuffer = AdcReturnAdcBuffer();
 	uint16_t lineCurrent = 0;
+	uint32_t adjusted_current_line;
 
 	prechargerState = precharger.Switch_State; 	// either 0 = OPEN, 1 = CLOSED, 2 = CLOSING, or 3 = SWITCH_ERROR
 	contactorState = contactor.Switch_State;  	// ditto
 	//contactorState = 1;  	// DEBUGGING LINEEEEEE. REMOVE THIS LINE AND UNCOMMENT THE ABOVE LINE WHEN DONE DEBUGGING
 
+	adjusted_current_line = (((adcBuffer[1]-370) * 3.3) / 4095) * 10;
 	prechargerError = precharger.switchError;	// if the bool is set to 1, there was an error
 	contactorError = contactor.switchError;		// ditto
 

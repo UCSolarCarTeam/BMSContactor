@@ -116,11 +116,12 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
+  checkState();
+
 
   AdcUserInit();
   initBoardIds();
   initContactor();
-
 
   checkState();
   HAL_TIM_Base_Start_IT(&htim16);
@@ -134,13 +135,30 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    
+#if DEBUG_JENNY
+		HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(Contactor_ON_Output_GPIO_Port, Contactor_ON_Output_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(CAN1_Mode_GPIO_Port, CAN1_Mode_Pin, GPIO_PIN_SET);
+#endif
+#if DEBUG_PRECHARGE
+	  checkState();
+	  HAL_GPIO_WritePin(Contactor_ON_Output_GPIO_Port, Contactor_ON_Output_Pin, GPIO_PIN_RESET);
+	  HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_RESET);
+
+//  HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(Contactor_ON_Output_GPIO_Port, Contactor_ON_Output_Pin, GPIO_PIN_SET);
+  checkState();
+  HAL_GPIO_WritePin(Contactor_ON_Output_GPIO_Port, Contactor_ON_Output_Pin, GPIO_PIN_RESET);
+
+#endif
     /* ADC task */
-    AdcTask();
+//    AdcTask();
 
-    Check_CAN_Messages();
+//    Check_CAN_Messages();
 
-    ContactorTask();
+//    ContactorTask();
   }
   /* USER CODE END 3 */
 }
@@ -302,8 +320,8 @@ static void MX_CAN1_Init(void)
   filterConfig_1.FilterIdHigh = (CONTACTOR_COMMAND_ID >> 13) & 0xffff;		// filter id is the part we want to mask and sets the IDE bit to true so we can accept extended IDs
 
   filterConfig_1.FilterIdLow = ((CONTACTOR_COMMAND_ID & 0x1fff) << 3) | (1 << 2);
-  filterConfig_1.FilterMaskIdHigh = 0;
-  filterConfig_1.FilterMaskIdLow = 0;		
+  filterConfig_1.FilterMaskIdHigh = 0xffff;
+  filterConfig_1.FilterMaskIdLow = 0xffff;
   filterConfig_1.FilterFIFOAssignment = CAN_FILTER_FIFO0; // Put accepted msgs in FIFO 0
   filterConfig_1.FilterActivation = ENABLE;               // Enable the filter
   if (HAL_CAN_ConfigFilter(&hcan1, &filterConfig_1) != HAL_OK) {
@@ -480,12 +498,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(DIAG_N_Input_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PB5 PB6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 #if PRECHARGER_DEBUG

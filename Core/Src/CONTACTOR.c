@@ -243,6 +243,7 @@ void checkState(void)
 	}
 
 	// Update contactor state (No common precharger)
+//#if PRECHARGE_NOT
 	if (boardIds.type != COMMON)
   	{
 		if(adcBuffer[1] >= PRECHARGE_COMPLETE_THRESHOLD_ADC_COUNT)
@@ -257,6 +258,7 @@ void checkState(void)
 
 		}
 	}
+//#endif
 }
 
 float func(float x)
