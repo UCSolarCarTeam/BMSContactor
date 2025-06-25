@@ -26,6 +26,8 @@
 #include "CONTACTOR.h"
 #include "TIMER.h"
 #include "ADC.h"
+#include "stm32l4xx_ll_gpio.h"  // Include the LL GPIO header
+
 
 /* USER CODE END Includes */
 
@@ -116,15 +118,15 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  checkState();
+//  checkState();
 
 
   AdcUserInit();
-  initBoardIds();
+//  initBoardIds();
   initContactor();
 
-  checkState();
-  HAL_TIM_Base_Start_IT(&htim16);
+//  checkState();
+//  HAL_TIM_Base_Start_IT(&htim16);
 
   /* USER CODE END 2 */
 
@@ -138,7 +140,21 @@ int main(void)
 #if DEBUG_JENNY
 		HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(Contactor_ON_Output_GPIO_Port, Contactor_ON_Output_Pin, GPIO_PIN_SET);
+
+		// Switch to output
+		LL_GPIO_SetPinMode(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, LL_GPIO_MODE_OUTPUT);
+
 		HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_SET);
+
+		// here the diag pin should be set to high (1)
+		uint32_t diag_pin_state = HAL_GPIO_ReadPin(DIAG_N_Input_GPIO_Port, DIAG_N_Input_Pin);
+
+		// Switch to high-impedance (input)
+		LL_GPIO_SetPinMode(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, LL_GPIO_MODE_INPUT);
+
+		// here the diag pin should be set to low (0)
+		diag_pin_state = HAL_GPIO_ReadPin(DIAG_N_Input_GPIO_Port, DIAG_N_Input_Pin);
+
 		HAL_GPIO_WritePin(CAN1_Mode_GPIO_Port, CAN1_Mode_Pin, GPIO_PIN_SET);
 #endif
 #if DEBUG_PRECHARGE
