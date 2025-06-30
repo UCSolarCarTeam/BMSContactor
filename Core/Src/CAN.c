@@ -12,6 +12,9 @@ extern CAN_HandleTypeDef hcan1;
 
 extern Precharger_t precharger;
 extern Contactor_t contactor;
+extern uint32_t contactorResistancePerContactor[];
+extern uint32_t prechargerResistancePerContactor[];
+
 //extern uint16_t raw_current;
 //extern uint16_t raw_voltage;
 
@@ -86,7 +89,10 @@ uint32_t makingCANMessage()
 	uint8_t contactorError;
 	uint8_t bpsError;
 	uint16_t* adcBuffer = AdcReturnAdcBuffer();
-	uint16_t lineCurrent = 0;
+
+	float adjusted_line_current_f;
+	int16_t adjusted_line_current;
+	int16_t adjusted_precharge_current;
 
 	prechargerState = precharger.Switch_State; 	// either 0 = OPEN, 1 = CLOSED, 2 = CLOSING, or 3 = SWITCH_ERROR
 	contactorState = contactor.Switch_State;  	// ditto
@@ -97,8 +103,13 @@ uint32_t makingCANMessage()
 
 	bpsError = contactor.BPSError; // if the bool is set to 1, there was a BPS error, SERIOUS
 
+	adjusted_line_current_f = (float) ( (float) ( (float) ( (float) ( (float) ( (float) ((float)adcBuffer[0] - LINE_CURRENT_OFFSET) * 2) / 4095.0) *1000.0) / contactorResistancePerContactor[boardIds.type]) * 10); // Take the line current adc value, minus the offset measure from the current sensor at 0. Then convert the ADC value to voltage by multiplying with the reference voltage (3.3 here) and dividing by 4095 (the scaling factor). Then, we divide by the resistance found through the datasheet for the current sensor. And then finally we scale it by 10 so we can track one decimal place changes
+	adjusted_line_current = adjusted_line_current_f;
+//	adjusted_line_current = 0;
+	adjusted_precharge_current = ((((adcBuffer[1] * 3.3) / 4095)*1000) / prechargerResistancePerContactor[boardIds.type]); // millivolts on top and then divide by milliohms to get current
+
 	// now we gotta convert them to bytes
-	uint32_t state_status = 0x000000; /* set output to 0 */
+	uint32_t state_status = 0x00000000; /* set output to 0 */
 	if (prechargerState == 0 || prechargerState == 1)
 	{
 		state_status |= ((prechargerState & 0x1) << 0);  	  	// Bit 0: PrechargerState is open or closed
@@ -123,11 +134,11 @@ uint32_t makingCANMessage()
 
 	// adding math to convert line current before sending it out onto the CAN Line
 	// now we have to times it by the amps to ADC voltage ratio
-	lineCurrent = adcBuffer[1] * contactor.lineCurrentAmpsPerADCVoltage;
+//	lineCurrent = adcBuffer[1] * contactor.lineCurrentAmpsPerADCVoltage;
 
-	state_status |= ((lineCurrent & 0xFFF) << 6);				// Bits 6 - 17: the line current
+	state_status |= ((adjusted_line_current & 0xFFF) << 6);				// Bits 6 - 17: the line current
 
-	state_status |= ((adcBuffer[0] & 0xFFF) << 18);				// Bits 18 - 30: the charge voltage
+	state_status |= ((adjusted_precharge_current & 0xFFF) << 18);				// Bits 18 - 30: the charge voltage
 
 	state_status |= ((bpsError & 0x1) << 30); 					// Bit 31: If the contactor failed to open, it's a serious BPS Error
 

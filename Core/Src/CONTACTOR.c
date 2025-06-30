@@ -10,6 +10,7 @@
 #include "ADC.h"
 #include "TIMER.h"
 #include "main.h"
+#include "stm32l4xx_ll_gpio.h"  // Include the LL GPIO header
 
 
 /* global variables */
@@ -75,6 +76,8 @@ void initContactor(void)
   	contactor.lineCurrentAmpsPerADCVoltage = lineCurrentPerContactor[type];// WILL CHANGE BASED ON CONACTOR ** can be 100!!! or 30!!!
 }
 
+static uint32_t number_of_tries_closing_contactor = 0;
+
 void ContactorTask(void)
 {
 	checkState();
@@ -97,15 +100,19 @@ void ContactorTask(void)
 			else{
 				// be sure you're open
 				enterAllOpenState();
-				// check if you're open
-				checkState();
 
-				// handling the case where we want to open the contactor but it's not opening (BPS Error - very serious)
-				if (contactor.GPIO_State != GPIO_PIN_RESET){
-					enterAllOpenState();
-					contactor.BPSError = true;
-				} else {
-					contactor.BPSError = false;
+				if (TimDelayExpired(stateDelayStart, 1000000))  /* Waits 1 second (1000000 microseconds) for precharging */
+				{
+					// check if you're open
+					checkState();
+
+					// handling the case where we want to open the contactor but it's not opening (BPS Error - very serious)
+					if (contactor.GPIO_State != GPIO_PIN_RESET){
+						enterAllOpenState();
+						contactor.BPSError = true;
+					} else {
+						contactor.BPSError = false;
+					}
 				}
 			}
 		break;
@@ -113,6 +120,8 @@ void ContactorTask(void)
 			if(!contactorCommandClose)
 			{
 				enterAllOpenState();
+				stateDelayStart = TimGetTime(); // added for trip
+
 			}
 			else
 			{
@@ -126,6 +135,8 @@ void ContactorTask(void)
 			if(!contactorCommandClose)
 			{
 				enterAllOpenState();
+				stateDelayStart = TimGetTime(); // added for trip
+
 			}
 			else
 			{
@@ -139,10 +150,13 @@ void ContactorTask(void)
 			if(!contactorCommandClose)
 			{
 				enterAllOpenState();
+				stateDelayStart = TimGetTime(); // added for trip
+
+
 			}
 			else
 			{
-				if(TimDelayExpired(stateDelayStart, 250000)) /* delay of about half a second*/
+				if(TimDelayExpired(stateDelayStart, 250000)) /* delay of about half a second (i think it's actually waiting 1/4 of a second but I don't question what Violet wrote) */
 				{
 					if(HAL_GPIO_ReadPin(Contactor_Aux_Input_GPIO_Port, Contactor_Aux_Input_Pin) == GPIO_PIN_SET)
 					{
@@ -150,10 +164,16 @@ void ContactorTask(void)
 					}
 					else
 					{
-						/* Failed to close, return to ALL_OPEN*/
-						enterAllOpenState();
-						// error, should it try closing 3-5 times before calling it an error?
-						contactor.switchError = true;
+						stateDelayStart = TimGetTime();
+						number_of_tries_closing_contactor++;
+
+						if (number_of_tries_closing_contactor >= MAX_NUM_OF_CLOSING_CONACTOR_TRIES){
+							/* Failed to close, return to ALL_OPEN*/
+							enterAllOpenState();
+							// error, should it try closing 3-5 times before calling it an error?
+							contactor.switchError = true;
+
+						}
 					}
 				}
 			}
@@ -162,6 +182,7 @@ void ContactorTask(void)
 			if(!contactorCommandClose)
 			{
 				enterAllOpenState();
+				stateDelayStart = TimGetTime(); // added for trip
 			} /* else nothing to do */
 		break;
 		case PRECHARGER_ERROR:
@@ -175,6 +196,7 @@ void ContactorTask(void)
 		default:
 			/* unknown state, open contactor */
 			enterAllOpenState();
+			stateDelayStart = TimGetTime(); // added for trip
 			contactor.switchError = true;
 		break;
 	}
@@ -185,7 +207,7 @@ void ContactorTask(void)
 static void enterAllOpenState()
 {
 	HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_RESET);
-	//HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_RESET);
+	LL_GPIO_SetPinMode(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, LL_GPIO_MODE_INPUT); 	// Switch to high-impedance (input) to set sense pin to reset (0)
 	HAL_GPIO_WritePin(Contactor_ON_Output_GPIO_Port, Contactor_ON_Output_Pin, GPIO_PIN_RESET);
 	contactorState = ALL_OPEN;
 }
@@ -194,6 +216,7 @@ static void enterPrecharging1State()
 {
 	if(boardIds.type != COMMON)
 	{
+		LL_GPIO_SetPinMode(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, LL_GPIO_MODE_OUTPUT); 		// Switch to output to be able to set sense pin to 1
 		HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_SET);
 	}
 	stateDelayStart = TimGetTime();
@@ -222,7 +245,7 @@ static void enterContactorClosedState()
 {
 	// open the precharger
 	HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_RESET);
-	//HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_RESET);
+	LL_GPIO_SetPinMode(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, LL_GPIO_MODE_INPUT);			// Switch to high-impedance (input) to set sense pin to reset (0)
 
 	contactorState = CONTACTOR_CLOSED;
 }

@@ -26,6 +26,7 @@
 #include "CONTACTOR.h"
 #include "TIMER.h"
 #include "ADC.h"
+#include "stm32l4xx_ll_gpio.h"  // Include the LL GPIO header
 
 /* USER CODE END Includes */
 
@@ -120,7 +121,6 @@ int main(void)
   AdcUserInit();
   initBoardIds();
   initContactor();
-
 
   checkState();
   HAL_TIM_Base_Start_IT(&htim16);
@@ -302,8 +302,8 @@ static void MX_CAN1_Init(void)
   filterConfig_1.FilterIdHigh = (CONTACTOR_COMMAND_ID >> 13) & 0xffff;		// filter id is the part we want to mask and sets the IDE bit to true so we can accept extended IDs
 
   filterConfig_1.FilterIdLow = ((CONTACTOR_COMMAND_ID & 0x1fff) << 3) | (1 << 2);
-  filterConfig_1.FilterMaskIdHigh = 0;
-  filterConfig_1.FilterMaskIdLow = 0;		
+  filterConfig_1.FilterMaskIdHigh = 0xffff;
+  filterConfig_1.FilterMaskIdLow = 0xffff;
   filterConfig_1.FilterFIFOAssignment = CAN_FILTER_FIFO0; // Put accepted msgs in FIFO 0
   filterConfig_1.FilterActivation = ENABLE;               // Enable the filter
   if (HAL_CAN_ConfigFilter(&hcan1, &filterConfig_1) != HAL_OK) {
@@ -457,10 +457,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, PRECHARGE_ON_Output_Pin|Contactor_ON_Output_Pin|PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_SET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(CAN1_Mode_GPIO_Port, CAN1_Mode_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, PRECHARGE_ON_Output_Pin|Contactor_ON_Output_Pin|PRECHARGE_Sense_On_Output_Pin|CAN1_Mode_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : Contactor_Aux_Input_Pin */
   GPIO_InitStruct.Pin = Contactor_Aux_Input_Pin;
@@ -480,12 +477,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(DIAG_N_Input_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PB5 PB6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 #if PRECHARGER_DEBUG
