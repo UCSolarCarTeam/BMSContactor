@@ -66,7 +66,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
   if (htim->Instance == TIM16)
   {
-    checkState();
+//    checkState();
 	  
     // Update heartbeat at 10Hz (Tim16 rate == 100Hz)
     if(heartbeatCounter == 10)

@@ -122,7 +122,7 @@ int main(void)
   initBoardIds();
   initContactor();
 
-  checkState();
+//  checkState();
   HAL_TIM_Base_Start_IT(&htim16);
 
   /* USER CODE END 2 */
