@@ -28,17 +28,14 @@ static uint32_t errorDelayStart = 0;
 uint32_t lineCurrentPerContactor[] = {COMMON_LINE_CURRENT_RATIO,
 									MOTOR_LINE_CURRENT_RATIO,
 									ARRAY_LINE_CURRENT_RATIO,
-									LV_LINE_CURRENT_RATIO,
 									CHARGE_LINE_CURRENT_RATIO};
 uint32_t prechargerResistancePerContactor[] = {COMMON_PRECHARGER_RESISTANCE,
 											 MOTOR_PRECHARGER_RESISTANCE,
 											 ARRAY_PRECHARGER_RESISTANCE,
-											 LV_PRECHARGER_RESISTANCE,
 											 CHARGE_PRECHARGER_RESISTANCE};
 uint32_t contactorResistancePerContactor[] = {COMMON_CONTACTOR_RESISTANCE,
 											MOTOR_CONTACTOR_RESISTANCE,
 											ARRAY_CONTACTOR_RESISTANCE,
-											LV_CONTACTOR_RESISTANCE,
 											CHARGE_CONTACTOR_RESISTANCE};
 
 static void enterAllOpenState();
@@ -87,7 +84,8 @@ void ContactorTask(void)
 		case ALL_OPEN:
 			if(contactorCommandClose)
 			{
-				if(boardIds.type != COMMON)
+				/* special code for array */
+				if((boardIds.type != COMMON) && (boardsIds.type != ARRAY))
 				{
 					enterPrecharging1State();
 				}
@@ -160,6 +158,7 @@ void ContactorTask(void)
 				{
 					if(HAL_GPIO_ReadPin(Contactor_Aux_Input_GPIO_Port, Contactor_Aux_Input_Pin) == GPIO_PIN_SET)
 					{
+						contactor.switchError = false;
 						enterContactorClosedState();
 					}
 					else
@@ -172,6 +171,9 @@ void ContactorTask(void)
 							enterAllOpenState();
 							// error, should it try closing 3-5 times before calling it an error?
 							contactor.switchError = true;
+
+							// reset the number of tries
+							number_of_tries_closing_contactor = 0;
 
 						}
 					}
@@ -239,6 +241,12 @@ static void enterClosingContactorState()
 	stateDelayStart = TimGetTime();
 	errorDelayStart = TimGetTime();
 	contactorState = CLOSING_CONTACTOR;
+
+	/* special code for array */
+	if (boardIds.type == ARRAY){
+		contactorState = CLOSED_CONTACTOR;
+	}
+
 }
 
 static void enterContactorClosedState()
@@ -250,37 +258,37 @@ static void enterContactorClosedState()
 	contactorState = CONTACTOR_CLOSED;
 }
 
-void checkState(void)
-{
-	uint16_t* adcBuffer = AdcReturnAdcBuffer();
-
-	// Update contactor state
-	contactor.GPIO_State = HAL_GPIO_ReadPin(contactor.GPIO_Port_Sense, contactor.GPIO_Pin_Sense);
-	if (contactor.GPIO_State == GPIO_PIN_SET)
-  	{
-		contactor.Switch_State = CLOSED;
-	}
-  	else
-  	{
-		contactor.Switch_State = OPEN;
-	}
-
-	// Update contactor state (No common precharger)
-	if (boardIds.type != COMMON)
-  	{
-		if(adcBuffer[1] >= PRECHARGE_COMPLETE_THRESHOLD_ADC_COUNT)
-    	{
-			precharger.Switch_State = CLOSED;
-			precharger.GPIO_State = GPIO_PIN_SET;
-		}
-    	else
-    	{
-			precharger.Switch_State = OPEN;
-			precharger.GPIO_State = GPIO_PIN_RESET; // ensure it's reset
-
-		}
-	}
-}
+//void checkState(void)
+//{
+//	uint16_t* adcBuffer = AdcReturnAdcBuffer();
+//
+//	// Update contactor state
+//	contactor.GPIO_State = HAL_GPIO_ReadPin(contactor.GPIO_Port_Sense, contactor.GPIO_Pin_Sense);
+//	if (contactor.GPIO_State == GPIO_PIN_SET)
+//  	{
+//		contactor.Switch_State = CLOSED;
+//	}
+//  	else
+//  	{
+//		contactor.Switch_State = OPEN;
+//	}
+//
+//	// Update contactor state (No common precharger)
+//	if (boardIds.type != COMMON)
+//  	{
+//		if(adcBuffer[1] >= PRECHARGE_COMPLETE_THRESHOLD_ADC_COUNT)
+//    	{
+//			precharger.Switch_State = CLOSED;
+//			precharger.GPIO_State = GPIO_PIN_SET;
+//		}
+//    	else
+//    	{
+//			precharger.Switch_State = OPEN;
+//			precharger.GPIO_State = GPIO_PIN_RESET; // ensure it's reset
+//
+//		}
+//	}
+//}
 
 float func(float x)
 {
