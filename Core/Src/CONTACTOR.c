@@ -160,6 +160,7 @@ void ContactorTask(void)
 				{
 					if(HAL_GPIO_ReadPin(Contactor_Aux_Input_GPIO_Port, Contactor_Aux_Input_Pin) == GPIO_PIN_SET)
 					{
+						contactor.switchError = false;
 						enterContactorClosedState();
 					}
 					else
@@ -173,6 +174,8 @@ void ContactorTask(void)
 							// error, should it try closing 3-5 times before calling it an error?
 							contactor.switchError = true;
 
+							// reset the number of tries
+							number_of_tries_closing_contactor = 0;
 						}
 					}
 				}
