@@ -28,17 +28,17 @@ static uint32_t errorDelayStart = 0;
 uint32_t lineCurrentPerContactor[] = {COMMON_LINE_CURRENT_RATIO,
 									MOTOR_LINE_CURRENT_RATIO,
 									ARRAY_LINE_CURRENT_RATIO,
-									LV_LINE_CURRENT_RATIO,
+//									LV_LINE_CURRENT_RATIO,
 									CHARGE_LINE_CURRENT_RATIO};
 uint32_t prechargerResistancePerContactor[] = {COMMON_PRECHARGER_RESISTANCE,
 											 MOTOR_PRECHARGER_RESISTANCE,
 											 ARRAY_PRECHARGER_RESISTANCE,
-											 LV_PRECHARGER_RESISTANCE,
+//											 LV_PRECHARGER_RESISTANCE,
 											 CHARGE_PRECHARGER_RESISTANCE};
 uint32_t contactorResistancePerContactor[] = {COMMON_CONTACTOR_RESISTANCE,
 											MOTOR_CONTACTOR_RESISTANCE,
 											ARRAY_CONTACTOR_RESISTANCE,
-											LV_CONTACTOR_RESISTANCE,
+//											LV_CONTACTOR_RESISTANCE,
 											CHARGE_CONTACTOR_RESISTANCE};
 
 static void enterAllOpenState();
