@@ -41,7 +41,7 @@ typedef enum
 {
     COMMON = 0,
     MOTOR,
-    ARRAY,
+//    ARRAY,
 //    LV,
     CHARGE,
     CONTACTOR_TYPE_NUM,
