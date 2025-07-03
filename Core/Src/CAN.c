@@ -103,8 +103,8 @@ uint32_t makingCANMessage()
 
 	bpsError = contactor.BPSError; // if the bool is set to 1, there was a BPS error, SERIOUS
 
-	adjusted_line_current_f = (float) ( (float) ( (float) ( (float) ( (float) ( (float) ((float)adcBuffer[0] - LINE_CURRENT_OFFSET) * 2) / 4095.0) *1000.0) / contactorResistancePerContactor[boardIds.type]) * 10); // Take the line current adc value, minus the offset measure from the current sensor at 0. Then convert the ADC value to voltage by multiplying with the reference voltage (3.3 here) and dividing by 4095 (the scaling factor). Then, we divide by the resistance found through the datasheet for the current sensor. And then finally we scale it by 10 so we can track one decimal place changes
-	adjusted_line_current = adjusted_line_current_f;
+	adjusted_line_current_f = (float) ( (float) ( (float) ( (float) ( (float) ( (float) ((float)adcBuffer[0]) * 2) / 4095.0) *1000.0) / contactorResistancePerContactor[boardIds.type])); // Take the line current adc value, minus the offset measure from the current sensor at 0. Then convert the ADC value to voltage by multiplying with the reference voltage (3.3 here) and dividing by 4095 (the scaling factor). Then, we divide by the resistance found through the datasheet for the current sensor. And then finally we scale it by 10 so we can track one decimal place changes
+	adjusted_line_current = (adjusted_line_current_f - LINE_CURRENT_OFFSET) * 10;
 //	adjusted_line_current = 0;
 	adjusted_precharge_current = ((((adcBuffer[1] * 3.3) / 4095)*1000) / prechargerResistancePerContactor[boardIds.type]); // millivolts on top and then divide by milliohms to get current
 
