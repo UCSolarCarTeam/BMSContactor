@@ -17,7 +17,7 @@
 #define STATUS_DLC 4
 
 #define CONTACTOR_COMMAND_ID 0x101
-#define LINE_CURRENT_OFFSET		3003 // NEED TO CHECK
+#define LINE_CURRENT_OFFSET		327 // IN AMPS
 
 uint16_t* AdcReturnAdcBuffer(void);
 uint32_t makingCANMessage();
