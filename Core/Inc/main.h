@@ -61,10 +61,10 @@ void Error_Handler(void);
 #define ARRAY_CURRENT_ADC_GPIO_Port GPIOA
 #define Contactor_Aux_Input_Pin GPIO_PIN_1
 #define Contactor_Aux_Input_GPIO_Port GPIOA
-#define PRECHARGE_ON_Output_Pin GPIO_PIN_4
-#define PRECHARGE_ON_Output_GPIO_Port GPIOA
-#define Contactor_ON_Output_Pin GPIO_PIN_5
+#define Contactor_ON_Output_Pin GPIO_PIN_4
 #define Contactor_ON_Output_GPIO_Port GPIOA
+#define PRECHARGE_ON_Output_Pin GPIO_PIN_5
+#define PRECHARGE_ON_Output_GPIO_Port GPIOA
 #define DIAG_N_Input_Pin GPIO_PIN_6
 #define DIAG_N_Input_GPIO_Port GPIOA
 #define PRECHARGE_Sense_On_Output_Pin GPIO_PIN_7

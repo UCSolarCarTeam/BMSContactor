@@ -457,7 +457,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, PRECHARGE_ON_Output_Pin|Contactor_ON_Output_Pin|PRECHARGE_Sense_On_Output_Pin|CAN1_Mode_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, Contactor_ON_Output_Pin|PRECHARGE_ON_Output_Pin|PRECHARGE_Sense_On_Output_Pin|CAN1_Mode_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : Contactor_Aux_Input_Pin */
   GPIO_InitStruct.Pin = Contactor_Aux_Input_Pin;
@@ -465,8 +465,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(Contactor_Aux_Input_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PRECHARGE_ON_Output_Pin Contactor_ON_Output_Pin PRECHARGE_Sense_On_Output_Pin CAN1_Mode_Pin */
-  GPIO_InitStruct.Pin = PRECHARGE_ON_Output_Pin|Contactor_ON_Output_Pin|PRECHARGE_Sense_On_Output_Pin|CAN1_Mode_Pin;
+  /*Configure GPIO pins : Contactor_ON_Output_Pin PRECHARGE_ON_Output_Pin PRECHARGE_Sense_On_Output_Pin CAN1_Mode_Pin */
+  GPIO_InitStruct.Pin = Contactor_ON_Output_Pin|PRECHARGE_ON_Output_Pin|PRECHARGE_Sense_On_Output_Pin|CAN1_Mode_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
