@@ -107,7 +107,7 @@ void ContactorTask(void)
 					checkState();
 
 					// handling the case where we want to open the contactor but it's not opening (BPS Error - very serious)
-					if (contactor.GPIO_State != GPIO_PIN_RESET){
+					if (HAL_GPIO_ReadPin(Contactor_Aux_Input_GPIO_Port, Contactor_Aux_Input_Pin) != GPIO_PIN_RESET){
 						enterAllOpenState();
 						contactor.BPSError = true;
 					} else {

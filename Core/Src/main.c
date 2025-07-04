@@ -135,12 +135,22 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     
+#if 0
+		LL_GPIO_SetPinMode(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, LL_GPIO_MODE_OUTPUT); 		// Switch to output to be able to set sense pin to 1
+		HAL_GPIO_WritePin(PRECHARGE_Sense_On_Output_GPIO_Port, PRECHARGE_Sense_On_Output_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(PRECHARGE_ON_Output_GPIO_Port, PRECHARGE_ON_Output_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(Contactor_ON_Output_GPIO_Port, Contactor_ON_Output_Pin, GPIO_PIN_SET);
+
+#endif
+
+#if 1
     /* ADC task */
     AdcTask();
 
     Check_CAN_Messages();
 
     ContactorTask();
+#endif
   }
   /* USER CODE END 3 */
 }
