@@ -123,6 +123,8 @@ int main(void)
   initContactor();
 
   checkState();
+  HAL_Delay(2000);
+
   HAL_TIM_Base_Start_IT(&htim16);
 
   /* USER CODE END 2 */
@@ -286,7 +288,7 @@ static void MX_CAN1_Init(void)
   hcan1.Init.TimeTriggeredMode = DISABLE;
   hcan1.Init.AutoBusOff = DISABLE;
   hcan1.Init.AutoWakeUp = DISABLE;
-  hcan1.Init.AutoRetransmission = DISABLE;
+  hcan1.Init.AutoRetransmission = ENABLE;
   hcan1.Init.ReceiveFifoLocked = DISABLE;
   hcan1.Init.TransmitFifoPriority = DISABLE;
   if (HAL_CAN_Init(&hcan1) != HAL_OK)
