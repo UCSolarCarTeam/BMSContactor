@@ -8,7 +8,7 @@
 #include "CAN.h"
 #include "main.h"
 
-extern CAN_HandleTypeDef hcan1;
+extern volatile CAN_HandleTypeDef hcan1;
 
 extern Precharger_t precharger;
 extern Contactor_t contactor;
